@@ -1,67 +1,316 @@
-# Payload Blank Template
+# WG-App
 
-This template comes configured with the bare minimum to get started on anything you need.
+Eine Haushaltsmanagement-App für Wohngemeinschaften. Die App ermöglicht WG-Mitgliedern die Organisation von Putzplänen, Einkaufslisten und gemeinsamen Terminen.
 
-## Quick start
+## Technologie-Stack
 
-This template can be deployed directly from our Cloud hosting and it will setup MongoDB and cloud S3 object storage for media.
+- **Payload CMS 3.84.1** – Headless CMS mit Authentifizierung und MongoDB
+- **Next.js 16.2.3** – React Framework mit App Router
+- **TypeScript 5.7.3** – Typsichere Entwicklung
+- **Tailwind CSS 3.4.19** – Utility-First CSS Framework
+- **MongoDB** – Datenbank für CMS-Daten
+- **Zod** – Schema-Validierung
+- **React Hook Form** – Formularverwaltung
 
-## Quick Start - local setup
+---
 
-To spin up this template locally, follow these steps:
+## Setup-Anleitung
 
-### Clone
+### Voraussetzungen
 
-After you click the `Deploy` button above, you'll want to have standalone copy of this repo on your machine. If you've already cloned this repo, skip to [Development](#development).
+- Node.js 18.20.2+ oder 20.9.0+
+- pnpm 9+ oder 10+
+- MongoDB (lokal oder via Docker)
 
-### Development
+### Installation
 
-1. First [clone the repo](#clone) if you have not done so already
-2. `cd my-project && cp .env.example .env` to copy the example environment variables. You'll need to add the `MONGODB_URL` from your Cloud project to your `.env` if you want to use S3 storage and the MongoDB database that was created for you.
+1. **Repository klonen**
+   ```bash
+   git clone <repo-url>
+   cd wg-app
+   ```
 
-3. `pnpm install && pnpm dev` to install dependencies and start the dev server
-4. open `http://localhost:3000` to open the app in your browser
+2. **Umgebungsvariablen konfigurieren**
+   ```bash
+   cp .env.example .env
+   ```
+   
+   Bearbeite `.env`:
+   ```
+   DATABASE_URL=mongodb://127.0.0.1/wg-app
+   PAYLOAD_SECRET=your-secret-key-here
+   ```
 
-That's it! Changes made in `./src` will be reflected in your app. Follow the on-screen instructions to login and create your first admin user. Then check out [Production](#production) once you're ready to build and serve your app, and [Deployment](#deployment) when you're ready to go live.
+3. **Abhängigkeiten installieren**
+   ```bash
+   pnpm install
+   ```
 
-#### Docker (Optional)
+4. **Datenbank starten (Docker)**
+   ```bash
+   docker-compose up -d
+   ```
+   
+   Oder MongoDB lokal installieren und in `.env` konfigurieren.
 
-If you prefer to use Docker for local development instead of a local MongoDB instance, the provided docker-compose.yml file can be used.
+5. **Entwicklungsserver starten**
+   ```bash
+   pnpm dev
+   ```
 
-To do so, follow these steps:
+6. **App aufrufen**
+   Öffne `http://localhost:3000` im Browser.
 
-- Modify the `MONGODB_URL` in your `.env` file to `mongodb://127.0.0.1/<dbname>`
-- Modify the `docker-compose.yml` file's `MONGODB_URL` to match the above `<dbname>`
-- Run `docker-compose up` to start the database, optionally pass `-d` to run in the background.
+7. **Ersten Admin-User erstellen**
+   Folge den Anweisungen auf dem Bildschirm, um einen Admin-User anzulegen.
 
-## How it works
+### Verfügbare Scripts
 
-The Payload config is tailored specifically to the needs of most websites. It is pre-configured in the following ways:
+| Script | Beschreibung |
+|--------|--------------|
+| `pnpm dev` | Dev-Server starten |
+| `pnpm devsafe` | Dev-Server mit Cache-Löschung |
+| `pnpm build` | Produktionsbuild |
+| `pnpm start` | Produktionsserver starten |
+| `pnpm lint` | ESLint ausführen |
+| `pnpm test` | Alle Tests ausführen |
+| `pnpm test:int` | Integrationstests (Vitest) |
+| `pnpm test:e2e` | E2E-Tests (Playwright) |
+| `pnpm generate:types` | Payload-Typen generieren |
+| `pnpm payload` | Payload CLI |
+
+---
+
+## Projektstruktur
+
+```
+src/
+├── app/
+│   ├── (frontend)/          # Next.js Frontend (App Router)
+│   │   ├── dashboard/        # Dashboard-Seite
+│   │   ├── cleaning/         # Putzplan-Seite
+│   │   ├── shopping/         # Einkaufslisten-Seite
+│   │   ├── calendar/         # Kalender-Seite
+│   │   ├── login/            # Login-Seite
+│   │   ├── layout.tsx        # Root Layout
+│   │   ├── page.tsx          # Root Page (redirect zu /dashboard)
+│   │   └── styles.css        # Globale Styles
+│   ├── (payload)/            # Payload CMS Admin
+│   └── my-route/             # API-Routen (optional)
+├── collections/              # Payload Collections
+│   ├── Users.ts              # Benutzer-Collection
+│   └── Media.ts              # Medien-Collection
+├── components/               # React-Komponenten
+│   ├── ui/                   # UI-Komponenten (Buttons, Inputs, etc.)
+│   └── navigation.tsx        # Navigation-Komponente
+├── lib/                      # Hilfsfunktionen
+│   └── utils.ts              # Utility-Funktionen (cn, etc.)
+├── payload.config.ts         # Payload-Konfiguration
+└── payload-types.ts          # Generierte TypeScript-Typen
+
+tests/
+├── e2e/                      # Playwright E2E-Tests
+├── int/                      # Vitest Integrationstests
+└── helpers/                  # Test-Hilfsfunktionen
+```
+
+---
+
+## Komponenten-Übersicht
+
+### Vorhandene Komponenten
+
+| Komponente | Pfad | Beschreibung | CMS-Verknüpfung |
+|------------|------|--------------|-----------------|
+| `Navigation` | `src/components/navigation.tsx` | Responsive Navigation (Mobile: Bottom, Desktop: Top) | Nein – statische Links |
+
+### Geplante Komponenten
+
+- Putzplan-Kalender
+- Einkaufslisten-Manager
+- Termin-Übersicht
+- WG-Mitglieder-Verwaltung
+
+---
+
+## Anleitung zur Erstellung neuer Komponenten
+
+### Namenskonventionen
+
+- **Komponenten**: PascalCase (z.B. `CleaningSchedule.tsx`)
+- **Ordner**: PascalCase (z.B. `CleaningSchedule/`)
+- **Styles**: SCSS Modules (z.B. `CleaningSchedule.module.scss`)
+- **Dateien**: Komponente und Styles im selben Ordner
+
+### Ordnerstruktur für neue Komponenten
+
+```
+src/components/
+├── ui/                       # Primitive UI-Komponenten
+│   ├── Button/
+│   │   ├── Button.tsx
+│   │   └── Button.module.scss
+│   └── Input/
+│       ├── Input.tsx
+│       └── Input.module.scss
+├── layout/                   # Layout-Komponenten
+│   └── Navigation/
+│       ├── Navigation.tsx
+│       └── Navigation.module.scss
+└── sections/                 # Seiten-Sections
+    └── HeroSection/
+        ├── HeroSection.tsx
+        └── HeroSection.module.scss
+```
+
+### TypeScript Interface für Props
+
+```typescript
+// src/components/sections/HeroSection/HeroSection.tsx
+import styles from './HeroSection.module.scss'
+
+interface HeroSectionProps {
+  title: string
+  subtitle?: string
+  backgroundImage?: string
+}
+
+export function HeroSection({ title, subtitle, backgroundImage }: HeroSectionProps) {
+  return (
+    <section className={styles.hero}>
+      <h1>{title}</h1>
+      {subtitle && <p>{subtitle}</p>}
+    </section>
+  )
+}
+```
+
+### Einbinden in eine Seite
+
+```typescript
+// src/app/(frontend)/[slug]/page.tsx
+import { HeroSection } from '@/components/sections/HeroSection/HeroSection'
+
+export default async function Page() {
+  // Daten vom CMS laden (optional)
+  // const data = await payload.find({...})
+
+  return (
+    <main>
+      <HeroSection 
+        title="Willkommen in der WG-App" 
+        subtitle="Organisiere deinen Haushalt" 
+      />
+    </main>
+  )
+}
+```
+
+---
+
+## CMS-Dokumentation
 
 ### Collections
 
-See the [Collections](https://payloadcms.com/docs/configuration/collections) docs for details on how to extend this functionality.
+#### Users
 
-- #### Users (Authentication)
+Benutzer-Authentifizierung mit Rollen-System.
 
-  Users are auth-enabled collections that have access to the admin panel.
+| Feld | Typ | Beschreibung |
+|------|-----|--------------|
+| `name` | Text | Anzeigename des Users |
+| `email` | Email | Login-E-Mail (Payload Auth) |
+| `password` | Password | Login-Passwort |
+| `avatar` | Upload | Profilbild (Relation zu Media) |
+| `role` | Select | `member` oder `admin` |
 
-  For additional help, see the official [Auth Example](https://github.com/payloadcms/payload/tree/3.x/examples/auth) or the [Authentication](https://payloadcms.com/docs/authentication/overview#authentication-overview) docs.
+**Admin-Konfiguration:**
+- `useAsTitle`: `name`
+- Auth aktiviert mit 15-Minuten Token-Ablauf
+- Cookies: Secure in Produktion, SameSite: Lax
 
-- #### Media
+#### Media
 
-  This is the uploads enabled collection. It features pre-configured sizes, focal point and manual resizing to help you manage your pictures.
+Medien-Upload-Collection.
 
-### Docker
+| Feld | Typ | Beschreibung |
+|------|-----|--------------|
+| `alt` | Text | Alt-Text für Barrierefreiheit |
+| `file` | Upload | Bilddatei |
 
-Alternatively, you can use [Docker](https://www.docker.com) to spin up this template locally. To do so, follow these steps:
+**Zugriff:**
+- `read`: Public (für Frontend-Bilder)
 
-1. Follow [steps 1 and 2 from above](#development), the docker-compose file will automatically use the `.env` file in your project root
-1. Next run `docker-compose up`
-1. Follow [steps 4 and 5 from above](#development) to login and create your first admin user
+### Geplante Collections
 
-That's it! The Docker instance will help you get up and running quickly while also standardizing the development environment across your teams.
+- `cleaning-tasks` – Putzplan-Aufgaben
+- `shopping-items` – Einkaufslisten-Einträge
+- `events` – WG-Termine und Events
+- `expenses` – WG-Ausgaben (optional)
 
-## Questions
+### Blocks
 
-If you have any issues or questions, reach out to us on [Discord](https://discord.com/invite/payload) or start a [GitHub discussion](https://github.com/payloadcms/payload/discussions).
+Derzeit keine Blocks definiert. Geplant für zukünftige Layout-Builder-Funktionalität.
+
+---
+
+## Aktuelle Einschränkungen / Todo
+
+### In Entwicklung
+
+- [ ] **Putzplan-Feature**: Rotierender Putzplan mit Aufgaben-Zuweisung
+- [ ] **Einkaufsliste**: Gemeinsame Einkaufsliste mit Hinzufügen/Entfernen
+- [ ] **Kalender**: WG-Termine und Events verwalten
+- [ ] **CMS-Integration**: Dashboard-Daten aus Payload laden
+
+### Bekannte Einschränkungen
+
+- Dashboard zeigt aktuell nur statische Inhalte
+- Putzplan-, Einkaufs- und Kalender-Seiten sind Platzhalter
+- Keine Echtzeit-Synchronisation zwischen WG-Mitgliedern
+- Mobile Navigation ist implementiert, aber UI-Komponenten-Bibliothek noch minimal
+
+### Geplante Verbesserungen
+
+- UI-Komponenten-Bibliothek erweitern (Button, Card, Modal, etc.)
+- Dark Mode Support
+- Push-Benachrichtigungen
+- Expense-Tracking für WG-Ausgaben
+
+---
+
+## Entwicklungs-Workflow
+
+### Commit-Struktur
+
+- **Trennung von CMS und Frontend**: Separate Commits für Payload-Änderungen und Frontend-Code
+- **Pro Komponente ein Commit**: Einzelne Commits für neue Komponenten
+- **Pro Collection ein Commit**: Einzelne Commits für neue Collections
+- **README aktualisieren**: Bei jedem relevanten Commit die README ergänzen
+
+### Beispiel-Commits
+
+```
+docs: update README with new components
+feat: add CleaningSchedule component
+feat(cms): add CleaningTasks collection
+feat: integrate CleaningSchedule with CMS data
+```
+
+---
+
+## Weitere Ressourcen
+
+- [Payload CMS Dokumentation](https://payloadcms.com/docs)
+- [Next.js Dokumentation](https://nextjs.org/docs)
+- [Tailwind CSS Dokumentation](https://tailwindcss.com/docs)
+- [React Hook Form](https://react-hook-form.com/)
+- [Zod Dokumentation](https://zod.dev/)
+
+---
+
+## Support
+
+Bei Fragen oder Problemen:
+- [Payload Discord](https://discord.com/invite/payload)
+- [Payload GitHub Discussions](https://github.com/payloadcms/payload/discussions)
