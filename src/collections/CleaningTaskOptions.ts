@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { anyone } from '@/access/anyone'
 
 export const CleaningTaskOptions: CollectionConfig = {
   slug: 'cleaning-task-options',
@@ -7,7 +8,7 @@ export const CleaningTaskOptions: CollectionConfig = {
     defaultColumns: ['title', 'isActive', 'sortOrder'],
   },
   access: {
-    read: () => true,
+    read: anyone,
     create: ({ req: { user } }) => user?.role === 'admin',
     update: ({ req: { user } }) => user?.role === 'admin',
     delete: ({ req: { user } }) => user?.role === 'admin',
