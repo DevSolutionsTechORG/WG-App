@@ -35,7 +35,7 @@
 | 2.1 Putzplan | **Completed** | 2026-05-06 | 2026-05-06 | ✅ Rotierender Putzplan mit Historie + Überfälligkeits-Tracking |
 | 2.2 Einkaufsliste | **Completed** | 2026-05-06 | 2026-05-06 | ✅ Kollaborative Liste mit Kategorien, Prioritäten, Käufer-Tracking |
 | 3.1 Kalender | **Completed** | 2026-05-06 | 2026-05-06 | ✅ Voll funktionsfähiger WG-Kalender mit erweiterten Funktionen |
-| 3.2 Dashboard | **Completed** | 2026-05-06 | 2026-05-06 | ✅ Übersicht mit Stats, Widgets, Quick Actions, responsive Design |
+| 3.2 Dashboard | **Completed** | 2026-05-06 | 2026-05-06 | ✅ Fokussiertes Dashboard mit User-Aufgaben, Einkaufsliste-Vorschau, Events-Übersicht |
 
 #### Features in 2.1:
 - ✅ Automatische wöchentliche Rotation via `(weekOffset + taskIndex) % userCount`
@@ -68,11 +68,11 @@
 - ✅ Optimiertes Mobile-First Design
 
 #### Features in 3.2:
-- ✅ Dashboard mit 4 Stats Cards (Einkäufe, Aufgaben, Events, User)
-- ✅ Meine Aufgaben Widget mit Fälligkeits-Info
-- ✅ Überfällige Aufgaben Warn-Widget
-- ✅ Kommende Events Widget (nächste 7 Tage)
-- ✅ Quick Actions zu allen Hauptbereichen
+- ✅ User-Aufgaben Section (aktuelle Aufgaben mit Erledigt-Status)
+- ✅ Einkaufsliste Vorschau (Top 3 Artikel mit Link zu /shopping)
+- ✅ EventListOverview Komponente (wiederverwendbare Events-Liste)
+- ✅ Monatliche Events Übersicht mit EventListOverview
+- ✅ Fokussiertes Dashboard ohne redundante Navigation-Buttons
 - ✅ Responsive Design (Mobile + Desktop)
 - ✅ Server Actions für Dashboard-Daten
 

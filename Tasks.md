@@ -123,20 +123,22 @@ Alle Subtasks abgeschlossen. Projekt bereit für Auth-Implementierung.
 ---
 
 ### Task 3.2: Dashboard (~2 Tage)
-**Ziel:** Übersicht aller Aktivitäten
+**Ziel:** Übersicht aller Aktivitäten mit fokussierten User-Informationen
 
 #### Subtasks:
 | ID | Subtask | Assignee | Status | Notes |
 |----|---------|----------|--------|-------|
-| 3.2.1 | Dashboard-Layout entwerfen | Cascade | | Mobile-first Grid mit Stats Cards |
-| 3.2.2 | Dashboard-Widgets implementieren | Cascade | | Putzplan, Einkaufsliste, Kalender Widgets |
-| 3.2.3 | Daten-Integration & Quick Stats | Cascade | | Server Actions für Dashboard-Daten, Stats API |
-| 3.2.4 | Einkaufsliste-Snippet Widget | Cascade | | Top 5 offene Items |
-| 3.2.5 | Responsive Design fertigstellen | Cascade | | Mobile + Desktop |
-| 3.2.6 | Dashboard als Default-Route | Cascade | | `/dashboard` → redirect von `/` |
+| 3.2.1 | Dashboard-Layout entwerfen | Cascade | | Mobile-first Grid mit User-Fokus |
+| 3.2.2 | User-Aufgaben Section | Cascade | | Aktuelle Aufgaben mit Erledigt-Status |
+| 3.2.3 | Einkaufsliste Vorschau | Cascade | | Top 3 Artikel mit Link zu /shopping |
+| 3.2.4 | EventListOverview Komponente | Cascade | | Wiederverwendbare Events-Liste aus Kalender |
+| 3.2.5 | Events Section | Cascade | | Monatliche Events mit EventListOverview |
+| 3.2.6 | Navigation-Buttons entfernen | Cascade | | Nur Navbar für Navigation verwenden |
+| 3.2.7 | Responsive Design fertigstellen | Cascade | | Mobile + Desktop |
+| 3.2.8 | Dashboard als Default-Route | Cascade | | `/dashboard` → redirect von `/` |
 
 **Dependencies:** 2.1 (Putzplan), 2.2 (Einkaufsliste), 3.1 (Kalender)
-**Output:** ✅ Voll funktionsfähiges Dashboard mit Stats, Widgets, Quick Actions
+**Output:** ✅ Fokussiertes Dashboard mit User-Aufgaben, Einkaufsliste-Vorschau, Events-Übersicht
 
 ---
 
