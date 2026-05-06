@@ -74,7 +74,7 @@ interface FormData {
 const makeDefaultForm = (start: Date, end: Date): FormData => ({
   title: '',
   startDate: format(start, 'yyyy-MM-dd'),
-  endDate: format(end, 'yyyy-MM-dd'),
+  endDate: format(start, 'yyyy-MM-dd'), // Use start date as end date for single-day events
   multiDay: false,
   description: '',
   location: '',
