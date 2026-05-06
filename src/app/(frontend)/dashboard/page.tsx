@@ -1,17 +1,19 @@
-import Link from 'next/link'
-import { format } from 'date-fns'
-import { de } from 'date-fns/locale'
 import {
-  Calendar,
-  ShoppingCart,
-  CheckCircle,
   AlertTriangle,
-  Users,
+  Calendar,
+  CheckCircle,
   Clock,
   Home,
+  ShoppingCart,
+  Users,
 } from 'lucide-react'
-
 import { getDashboardData, getDashboardStats } from '@/lib/dashboard/actions'
+
+import { EventListOverview } from '@/components/EventListOverview'
+import Link from 'next/link'
+import type { ShoppingItem } from '@/payload-types'
+import { de } from 'date-fns/locale'
+import { format } from 'date-fns'
 
 export default async function DashboardPage() {
   const dashboardResult = await getDashboardData()
@@ -58,182 +60,137 @@ export default async function DashboardPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="bg-card rounded-lg shadow border p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Offene Einkäufe</p>
-                <p className="text-2xl font-bold text-foreground">{stats.openShoppingItems}</p>
-              </div>
-              <ShoppingCart className="w-8 h-8 text-blue-500" />
-            </div>
-          </div>
-
-          <div className="bg-card rounded-lg shadow border p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Meine Aufgaben</p>
-                <p className="text-2xl font-bold text-foreground">{stats.myTasksThisWeek}</p>
-              </div>
-              <Home className="w-8 h-8 text-green-500" />
-            </div>
-          </div>
-
-          <div className="bg-card rounded-lg shadow border p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Events diesen Monat</p>
-                <p className="text-2xl font-bold text-foreground">{stats.eventsThisMonth}</p>
-              </div>
-              <Calendar className="w-8 h-8 text-purple-500" />
-            </div>
-          </div>
-
-          <div className="bg-card rounded-lg shadow border p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">WG-Mitglieder</p>
-                <p className="text-2xl font-bold text-foreground">{stats.totalUsers}</p>
-              </div>
-              <Users className="w-8 h-8 text-orange-500" />
-            </div>
-          </div>
-        </div>
-
-        {/* My Tasks Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className="bg-card rounded-lg shadow border p-6">
-            <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-              <Home className="w-5 h-5" />
-              Meine Aufgaben diese Woche
-            </h2>
-            {data.myTasks.length > 0 ? (
-              <div className="space-y-3">
-                {data.myTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    className="flex items-center justify-between p-3 bg-muted rounded-lg"
-                  >
-                    <div>
-                      <p className="font-medium text-foreground">{(task.template as any)?.title}</p>
-                      {task.dueDate && (
-                        <p className="text-sm text-muted-foreground">
-                          Fällig: {format(new Date(task.dueDate), 'dd.MM.yyyy', { locale: de })}
-                        </p>
-                      )}
+        {/* User Tasks Section */}
+        <div className="bg-card rounded-lg shadow border p-6 mb-8">
+          <h2 className="text-lg font-semibold text-foreground mb-4">Meine Aufgaben</h2>
+          {data.myTasks.length > 0 ? (
+            <div className="space-y-3">
+              {data.myTasks.map((task) => (
+                <div
+                  key={task.id}
+                  className="flex items-center justify-between p-4 bg-muted rounded-lg border"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="font-medium text-foreground">
+                        {(task.template as any)?.title}
+                      </h3>
+                      <span
+                        className={`px-2 py-1 text-xs rounded-full ${
+                          task.status === 'completed'
+                            ? 'bg-green-100 text-green-800'
+                            : task.status === 'pending'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {task.status === 'completed'
+                          ? 'Erledigt'
+                          : task.status === 'pending'
+                            ? 'Offen'
+                            : 'Übersprungen'}
+                      </span>
                     </div>
-                    <Link href="/cleaning" className="text-sm text-primary hover:underline">
-                      Details
-                    </Link>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-muted-foreground">Keine offenen Aufgaben diese Woche</p>
-            )}
-          </div>
-
-          {/* Overdue Tasks */}
-          {data.overdueTasks.length > 0 && (
-            <div className="bg-card rounded-lg shadow border p-6 border-red-200">
-              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2 text-red-600">
-                <AlertTriangle className="w-5 h-5" />
-                Überfällige Aufgaben
-              </h2>
-              <div className="space-y-3">
-                {data.overdueTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    className="flex items-center justify-between p-3 bg-red-50 rounded-lg"
-                  >
-                    <div>
-                      <p className="font-medium text-foreground">{(task.template as any)?.title}</p>
-                      <p className="text-sm text-red-600">
-                        Fällig:{' '}
-                        {task.dueDate
-                          ? format(new Date(task.dueDate), 'dd.MM.yyyy', { locale: de })
-                          : 'Kein Datum'}
+                    {task.dueDate && (
+                      <p className="text-sm text-muted-foreground">
+                        Fällig: {format(new Date(task.dueDate), 'dd.MM.yyyy', { locale: de })}
                       </p>
-                    </div>
-                    <Link href="/cleaning" className="text-sm text-primary hover:underline">
-                      Erledigen
-                    </Link>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Link href="/cleaning" className="block">
-            <div className="p-6 bg-card rounded-lg shadow border hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-3">
-                <Home className="w-8 h-8 text-green-500" />
-                <div>
-                  <h2 className="text-lg font-semibold text-foreground">Putzplan</h2>
-                  <p className="text-muted-foreground">Deine wöchentlichen Aufgaben</p>
-                </div>
-              </div>
-            </div>
-          </Link>
-
-          <Link href="/shopping" className="block">
-            <div className="p-6 bg-card rounded-lg shadow border hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-3">
-                <ShoppingCart className="w-8 h-8 text-blue-500" />
-                <div>
-                  <h2 className="text-lg font-semibold text-foreground">Einkaufsliste</h2>
-                  <p className="text-muted-foreground">Gemeinsame Einkaufsliste</p>
-                </div>
-              </div>
-            </div>
-          </Link>
-
-          <Link href="/calendar" className="block">
-            <div className="p-6 bg-card rounded-lg shadow border hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-3">
-                <Calendar className="w-8 h-8 text-purple-500" />
-                <div>
-                  <h2 className="text-lg font-semibold text-foreground">Kalender</h2>
-                  <p className="text-muted-foreground">WG-Termine & Events</p>
-                </div>
-              </div>
-            </div>
-          </Link>
-        </div>
-
-        {/* Upcoming Events */}
-        {data.upcomingEvents.length > 0 && (
-          <div className="bg-card rounded-lg shadow border p-6">
-            <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-              <Calendar className="w-5 h-5" />
-              Kommende Events
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {data.upcomingEvents.map((event) => (
-                <div key={event.id} className="p-4 bg-muted rounded-lg">
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 className="font-medium text-foreground">{event.title}</h3>
-                    {event.location && (
-                      <span className="text-sm text-muted-foreground">{event.location}</span>
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    {format(new Date(event.startDate), 'dd.MM.yyyy HH:mm', { locale: de })}
-                  </p>
-                  {event.description && (
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {event.description}
-                    </p>
-                  )}
+                  <Link href="/cleaning" className="text-sm text-primary hover:underline ml-4">
+                    Details
+                  </Link>
                 </div>
               ))}
             </div>
+          ) : (
+            <p className="text-muted-foreground">Keine Aufgaben zugeteilt</p>
+          )}
+        </div>
+
+        {/* Shopping Preview Section */}
+        <div className="bg-card rounded-lg shadow border p-6 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-foreground">Einkaufsliste Vorschau</h2>
+            <Link href="/shopping" className="text-sm text-primary hover:underline">
+              Alle anzeigen
+            </Link>
           </div>
-        )}
+          {data.openShoppingItems.length > 0 ? (
+            <div className="space-y-2">
+              {data.openShoppingItems.slice(0, 3).map((item: ShoppingItem) => (
+                <Link
+                  key={item.id}
+                  href="/shopping"
+                  className="block p-3 bg-muted rounded-lg border hover:bg-muted/80 transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <h3 className="font-medium text-foreground">{item.title}</h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span
+                          className={`text-xs px-2 py-1 rounded ${
+                            item.priority === 'high'
+                              ? 'bg-red-100 text-red-800'
+                              : item.priority === 'medium'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-gray-100 text-gray-800'
+                          }`}
+                        >
+                          {item.priority === 'high'
+                            ? 'Hoch'
+                            : item.priority === 'medium'
+                              ? 'Mittel'
+                              : 'Niedrig'}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {item.category === 'food'
+                            ? 'Lebensmittel'
+                            : item.category === 'cleaning'
+                              ? 'Reinigung'
+                              : 'Sonstiges'}
+                        </span>
+                        {item.quantity && item.unit && (
+                          <span className="text-xs text-muted-foreground">
+                            {item.quantity} {item.unit}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {(item.requestedBy as any)?.name || 'Unbekannt'}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="text-muted-foreground">Keine offenen Einkaufsartikel</p>
+          )}
+        </div>
+
+        {/* Events Overview */}
+        <div className="bg-card rounded-lg shadow border p-6">
+          <EventListOverview
+            events={data.upcomingEvents.map((event: any) => ({
+              id: event.id,
+              title: event.title,
+              start: new Date(event.startDate),
+              end: new Date(event.endDate || event.startDate),
+              allDay: event.allDay || false,
+              resource: {
+                description: event.description || undefined,
+                location: event.location || undefined,
+                eventType: (event.eventType as any) || 'other',
+              },
+            }))}
+            currentDate={new Date()}
+            title="Events diesen Monat"
+            showNavigation={false}
+            titleAsLink={true}
+            enableModal={true}
+          />
+        </div>
       </main>
     </div>
   )
