@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { authenticated } from '@/access/authenticated'
 
 export const Events: CollectionConfig = {
   slug: 'events',
@@ -7,9 +8,9 @@ export const Events: CollectionConfig = {
     defaultColumns: ['title', 'startDate', 'endDate', 'allDay', 'createdBy'],
   },
   access: {
-    read: ({ req: { user } }) => !!user,
-    create: ({ req: { user } }) => !!user,
-    update: ({ req: { user } }) => !!user,
+    read: authenticated,
+    create: authenticated,
+    update: authenticated,
     delete: ({ req: { user } }) => user?.role === 'admin',
   },
   fields: [

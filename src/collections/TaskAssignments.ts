@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { authenticated } from '@/access/authenticated'
 
 export const TaskAssignments: CollectionConfig = {
   slug: 'task-assignments',
@@ -7,9 +8,9 @@ export const TaskAssignments: CollectionConfig = {
     defaultColumns: ['template', 'assignedTo', 'weekNumber', 'year', 'status'],
   },
   access: {
-    read: ({ req: { user } }) => !!user,
+    read: authenticated,
     create: ({ req: { user } }) => user?.role === 'admin',
-    update: ({ req: { user } }) => !!user,
+    update: authenticated,
     delete: ({ req: { user } }) => user?.role === 'admin',
   },
   fields: [

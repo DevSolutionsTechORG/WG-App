@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { authenticated } from '@/access/authenticated'
 
 export const ShoppingItems: CollectionConfig = {
   slug: 'shopping-items',
@@ -7,9 +8,9 @@ export const ShoppingItems: CollectionConfig = {
     defaultColumns: ['title', 'category', 'priority', 'status', 'requestedBy'],
   },
   access: {
-    read: ({ req: { user } }) => !!user,
-    create: ({ req: { user } }) => !!user,
-    update: ({ req: { user } }) => !!user,
+    read: authenticated,
+    create: authenticated,
+    update: authenticated,
     delete: ({ req: { user } }) => user?.role === 'admin',
   },
   fields: [

@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { authenticated } from '@/access/authenticated'
 
 export const TaskCompletionHistory: CollectionConfig = {
   slug: 'task-completion-history',
@@ -7,8 +8,8 @@ export const TaskCompletionHistory: CollectionConfig = {
     defaultColumns: ['assignment', 'completedBy', 'completedAt', 'weekNumber'],
   },
   access: {
-    read: ({ req: { user } }) => !!user,
-    create: ({ req: { user } }) => !!user,
+    read: authenticated,
+    create: authenticated,
     update: ({ req: { user } }) => user?.role === 'admin',
     delete: ({ req: { user } }) => user?.role === 'admin',
   },
