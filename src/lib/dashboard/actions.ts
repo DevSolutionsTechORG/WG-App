@@ -1,9 +1,10 @@
 'use server'
 
+import type { Event, ShoppingItem, TaskAssignment, User } from '@/payload-types'
+
+import config from '@/payload.config'
 import { headers as getHeaders } from 'next/headers.js'
 import { getPayload } from 'payload'
-import config from '@/payload.config'
-import type { User, TaskAssignment, ShoppingItem, Event } from '@/payload-types'
 
 /**
  * Get dashboard overview data
@@ -21,45 +22,45 @@ export async function getDashboardData() {
 
     // Get current week number and year
     const now = new Date()
-    const weekNumber = Math.ceil((now.getTime() - new Date(now.getFullYear(), 0, 1).getTime()) / (7 * 24 * 60 * 60 * 1000))
+    const weekNumber = Math.ceil(
+      (now.getTime() - new Date(now.getFullYear(), 0, 1).getTime()) / (7 * 24 * 60 * 60 * 1000),
+    )
     const year = now.getFullYear()
 
-    // Get user's current cleaning tasks
+    // Get user's current cleaning tasks (all tasks, not just this week)
     const assignmentsResult = await payload.find({
       collection: 'task-assignments',
       where: {
-        and: [
-          { assignedTo: { equals: currentUser.id } },
-          { weekNumber: { equals: weekNumber } },
-          { year: { equals: year } },
-          { status: { not_equals: 'completed' } },
-        ],
+        and: [{ assignedTo: { equals: currentUser.id } }, { status: { not_equals: 'completed' } }],
       },
       sort: 'dueDate',
       depth: 2,
       limit: 10,
     })
 
-    // Get shopping items count
+    // Get shopping items
     const shoppingResult = await payload.find({
       collection: 'shopping-items',
       where: { status: { equals: 'open' } },
-      limit: 1,
+      sort: 'createdAt',
+      depth: 1,
+      limit: 10,
     })
 
-    // Get upcoming events (next 7 days)
-    const futureDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+    // Get events for current month
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59)
     const eventsResult = await payload.find({
       collection: 'events',
       where: {
         and: [
-          { startDate: { greater_than_equal: now.toISOString() } },
-          { startDate: { less_than_equal: futureDate.toISOString() } },
+          { startDate: { greater_than_equal: monthStart.toISOString() } },
+          { startDate: { less_than_equal: monthEnd.toISOString() } },
         ],
       },
       sort: 'startDate',
       depth: 1,
-      limit: 5,
+      limit: 20,
     })
 
     // Get overdue tasks
@@ -85,7 +86,7 @@ export async function getDashboardData() {
         currentWeek: weekNumber,
         currentYear: year,
         myTasks: assignmentsResult.docs as TaskAssignment[],
-        openShoppingItems: shoppingResult.totalDocs,
+        openShoppingItems: shoppingResult.docs as ShoppingItem[],
         upcomingEvents: eventsResult.docs as Event[],
         overdueTasks: overdueResult.docs as TaskAssignment[],
       },
@@ -111,12 +112,7 @@ export async function getDashboardStats() {
     }
 
     // Get counts in parallel
-    const [
-      shoppingResult,
-      eventsResult,
-      myTasksResult,
-      allUsersResult,
-    ] = await Promise.all([
+    const [shoppingResult, eventsResult, myTasksResult, allUsersResult] = await Promise.all([
       // Open shopping items
       payload.find({
         collection: 'shopping-items',
@@ -128,8 +124,24 @@ export async function getDashboardStats() {
         collection: 'events',
         where: {
           and: [
-            { startDate: { greater_than_equal: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString() } },
-            { startDate: { less_than_equal: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString() } },
+            {
+              startDate: {
+                greater_than_equal: new Date(
+                  new Date().getFullYear(),
+                  new Date().getMonth(),
+                  1,
+                ).toISOString(),
+              },
+            },
+            {
+              startDate: {
+                less_than_equal: new Date(
+                  new Date().getFullYear(),
+                  new Date().getMonth() + 1,
+                  0,
+                ).toISOString(),
+              },
+            },
           ],
         },
         limit: 1,
@@ -140,7 +152,14 @@ export async function getDashboardStats() {
         where: {
           and: [
             { assignedTo: { equals: currentUser.id } },
-            { weekNumber: { equals: Math.ceil((new Date().getTime() - new Date(new Date().getFullYear(), 0, 1).getTime()) / (7 * 24 * 60 * 60 * 1000)) } },
+            {
+              weekNumber: {
+                equals: Math.ceil(
+                  (new Date().getTime() - new Date(new Date().getFullYear(), 0, 1).getTime()) /
+                    (7 * 24 * 60 * 60 * 1000),
+                ),
+              },
+            },
             { year: { equals: new Date().getFullYear() } },
             { status: { not_equals: 'completed' } },
           ],
