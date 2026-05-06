@@ -1,19 +1,15 @@
-import {
-  AlertTriangle,
-  Calendar,
-  CheckCircle,
-  Clock,
-  Home,
-  ShoppingCart,
-  Users,
-} from 'lucide-react'
+'use client'
+
 import { endOfWeek, format, getWeek, startOfWeek } from 'date-fns'
 import { getDashboardData, getDashboardStats } from '@/lib/dashboard/actions'
+import { useEffect, useState } from 'react'
 
 import { EventListOverview } from '@/components/EventListOverview'
 import Link from 'next/link'
 import type { ShoppingItem } from '@/payload-types'
 import { de } from 'date-fns/locale'
+import { useAuth } from '@/hooks/useAuth'
+import { useRouter } from 'next/navigation'
 
 // Helper function to get week range
 const getWeekRange = (date: Date) => {
@@ -22,25 +18,67 @@ const getWeekRange = (date: Date) => {
   return `${format(weekStart, 'dd.MM.yyyy', { locale: de })} - ${format(weekEnd, 'dd.MM.yyyy', { locale: de })}`
 }
 
-export default async function DashboardPage() {
-  const dashboardResult = await getDashboardData()
-  const statsResult = await getDashboardStats()
+export default function DashboardPage() {
+  const { isAuthenticated, isLoading } = useAuth()
+  const router = useRouter()
+  const [dashboardData, setDashboardData] = useState<any>(null)
+  const [dashboardStats, setDashboardStats] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
 
-  if (
-    !dashboardResult.success ||
-    !statsResult.success ||
-    !dashboardResult.data ||
-    !statsResult.stats
-  ) {
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push('/login')
+      return
+    }
+
+    if (isAuthenticated) {
+      loadDashboardData()
+    }
+  }, [isLoading, isAuthenticated, router])
+
+  const loadDashboardData = async () => {
+    try {
+      const [dataResult, statsResult] = await Promise.all([getDashboardData(), getDashboardStats()])
+
+      setDashboardData(
+        dataResult.success
+          ? dataResult.data
+          : { upcomingEvents: [], openShoppingItems: [], myTasks: [] },
+      )
+      setDashboardStats(
+        statsResult.success
+          ? statsResult.stats
+          : { openShoppingItems: 0, myTasksThisWeek: 0, eventsThisMonth: 0, totalUsers: 0 },
+      )
+    } catch (error) {
+      console.error('Error loading dashboard data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (isLoading || loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-foreground">Lade Dashboard...</div>
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return null // Will redirect to login
+  }
+
+  const data = dashboardData
+  const stats = dashboardStats
+
+  if (!data || !stats) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <p className="text-muted-foreground">Fehler beim Laden des Dashboards</p>
       </div>
     )
   }
-
-  const data = dashboardResult.data
-  const stats = statsResult.stats
 
   return (
     <div className="min-h-screen bg-background">
@@ -72,7 +110,7 @@ export default async function DashboardPage() {
           <h2 className="text-lg font-semibold text-foreground mb-4">Meine Aufgaben</h2>
           {data.myTasks.length > 0 ? (
             <div className="space-y-3">
-              {data.myTasks.map((task) => (
+              {data.myTasks.map((task: any) => (
                 <div
                   key={task.id}
                   className="flex items-center justify-between p-4 bg-muted rounded-lg border"
