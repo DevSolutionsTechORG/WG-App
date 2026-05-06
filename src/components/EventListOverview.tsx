@@ -1,9 +1,9 @@
 'use client'
 
-import { MapPin, Plus, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, MapPin } from 'lucide-react'
 import { createEvent, deleteEvent, updateEvent } from '@/lib/calendar/actions'
 import { format, isSameMonth } from 'date-fns'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 
 import Link from 'next/link'
 import { de } from 'date-fns/locale/de'
@@ -63,7 +63,7 @@ interface FormData {
 const makeDefaultForm = (start: Date, end: Date): FormData => ({
   title: '',
   startDate: format(start, 'yyyy-MM-dd'),
-  endDate: format(end, 'yyyy-MM-dd'),
+  endDate: format(start, 'yyyy-MM-dd'), // Use start date as end date for single-day events
   multiDay: false,
   description: '',
   location: '',
@@ -194,7 +194,7 @@ export function EventListOverview({
                 className="p-1.5 rounded hover:bg-muted"
                 aria-label="Vorheriger Monat"
               >
-                <MapPin className="w-4 h-4" />
+                <ChevronLeft className="w-4 h-4" />
               </button>
             )}
             {onNavigateToday && (
@@ -211,7 +211,7 @@ export function EventListOverview({
                 className="p-1.5 rounded hover:bg-muted"
                 aria-label="Nächster Monat"
               >
-                <MapPin className="w-4 h-4" />
+                <ChevronRight className="w-4 h-4" />
               </button>
             )}
           </div>
