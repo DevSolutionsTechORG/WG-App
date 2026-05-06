@@ -74,6 +74,7 @@ export interface Config {
     'task-completion-history': TaskCompletionHistory;
     'cleaning-task-options': CleaningTaskOption;
     'shopping-items': ShoppingItem;
+    events: Event;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -88,6 +89,7 @@ export interface Config {
     'task-completion-history': TaskCompletionHistorySelect<false> | TaskCompletionHistorySelect<true>;
     'cleaning-task-options': CleaningTaskOptionsSelect<false> | CleaningTaskOptionsSelect<true>;
     'shopping-items': ShoppingItemsSelect<false> | ShoppingItemsSelect<true>;
+    events: EventsSelect<false> | EventsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -285,6 +287,26 @@ export interface ShoppingItem {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "events".
+ */
+export interface Event {
+  id: string;
+  title: string;
+  description?: string | null;
+  startDate: string;
+  /**
+   * Optional: Endzeitpunkt (falls nicht gesetzt = Startzeitpunkt)
+   */
+  endDate?: string | null;
+  allDay?: boolean | null;
+  location?: string | null;
+  eventType?: ('wg-meeting' | 'party' | 'cleaning' | 'other') | null;
+  createdBy: string | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -334,6 +356,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'shopping-items';
         value: string | ShoppingItem;
+      } | null)
+    | ({
+        relationTo: 'events';
+        value: string | Event;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -494,6 +520,22 @@ export interface ShoppingItemsSelect<T extends boolean = true> {
   completedAt?: T;
   quantity?: T;
   unit?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "events_select".
+ */
+export interface EventsSelect<T extends boolean = true> {
+  title?: T;
+  description?: T;
+  startDate?: T;
+  endDate?: T;
+  allDay?: T;
+  location?: T;
+  eventType?: T;
+  createdBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
