@@ -1,12 +1,15 @@
-import { mongooseAdapter } from '@payloadcms/db-mongodb'
-import { lexicalEditor } from '@payloadcms/richtext-lexical'
-import path from 'path'
+import { CleaningTaskOptions } from './collections/CleaningTaskOptions'
+import { Media } from './collections/Media'
+import { TaskAssignments } from './collections/TaskAssignments'
+import { TaskCompletionHistory } from './collections/TaskCompletionHistory'
+import { TaskTemplates } from './collections/TaskTemplates'
+import { Users } from './collections/Users'
 import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
+import { lexicalEditor } from '@payloadcms/richtext-lexical'
+import { mongooseAdapter } from '@payloadcms/db-mongodb'
+import path from 'path'
 import sharp from 'sharp'
-
-import { Users } from './collections/Users'
-import { Media } from './collections/Media'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -17,8 +20,22 @@ export default buildConfig({
     importMap: {
       baseDir: path.resolve(dirname),
     },
+    autoLogin:
+      process.env.NODE_ENV === 'development'
+        ? {
+            email: process.env.AUTOLOGIN_EMAIL || 'test@example.com',
+            password: process.env.AUTOLOGIN_PASSWORD || 'test',
+          }
+        : false,
   },
-  collections: [Users, Media],
+  collections: [
+    Users,
+    Media,
+    TaskTemplates,
+    TaskAssignments,
+    TaskCompletionHistory,
+    CleaningTaskOptions,
+  ],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {
