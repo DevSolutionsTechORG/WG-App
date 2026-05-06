@@ -58,16 +58,49 @@ payload.config.ts
 | avatar | Upload | optional |
 | role | Select | `member` \| `admin` |
 
-### `CleaningTasks`
+### `TaskTemplates` (NEU – ersetzt CleaningTasks)
 | Feld | Typ | Details |
 |---|---|---|
-| taskName | Text | z.B. "Wischen", "Bad putzen" |
-| assignedTo | Relationship → Users | Aktuell zugewiesen |
-| weekNumber | Number | ISO-Wochennummer |
+| title | Text | z.B. "Wischen", "Saugen", "Anderes" |
+| description | Textarea | Beschreibung der Aufgabe |
+| rotationGroup | Number | Gruppe für Rotation (z.B. 0 für alle wöchentlichen Tasks) |
+| frequency | Select | weekly \| biweekly \| monthly |
+| isCustom | Checkbox | true = User kann freien Text eingeben ("Anderes") |
+| requiresOptions | Checkbox | true = User wählt aus Pflegeoptionen |
+
+### `TaskAssignments` (NEU – Persistente Zuweisungen)
+| Feld | Typ | Details |
+|---|---|---|
+| template | Relationship → TaskTemplates | Welche Aufgabe |
+| assignedTo | Relationship → Users | Zugewiesener User |
+| weekNumber | Number | ISO-Kalenderwoche |
 | year | Number | Jahr |
-| completedAt | Date | nullable |
-| completedBy | Relationship → Users | nullable |
-| rotationIndex | Number | **In DB persistieren, nie neu berechnen** |
+| status | Select | pending \| completed \| skipped |
+| dueDate | Date | Frist z.B. Freitag |
+| notes | Textarea | User-Notizen (besonders für "Anderes") |
+
+### `TaskCompletionHistory` (NEU – Historie)
+| Feld | Typ | Details |
+|---|---|---|
+| assignment | Relationship → TaskAssignments | Referenz zur Zuweisung |
+| template | Relationship → TaskTemplates | Task-Referenz |
+| completedBy | Relationship → Users | Wer hat erledigt |
+| completedAt | Date | Zeitpunkt |
+| weekNumber | Number | KW |
+| year | Number | Jahr |
+| notes | Textarea | Was wurde gemacht |
+| selectedOption | Text | Falls aus Vorschlägen gewählt |
+
+### `CleaningTaskOptions` (NEU – Pflegeoptionen)
+| Feld | Typ | Details |
+|---|---|---|
+| title | Text | z.B. "Fenster putzen" |
+| description | Textarea | Details |
+| isActive | Checkbox | Angezeigt im Frontend |
+| sortOrder | Number | Reihenfolge |
+
+### ~~`CleaningTasks`~~ (DEPRECATED – wird ersetzt)
+> ⚠️ Aktuelle Implementation hat **keine echte Rotation** – `rotationIndex` ist statisch und wird nicht automatisch pro Woche neu berechnet.
 
 ### `TaskSwapRequests`
 | Feld | Typ | Details |
@@ -301,12 +334,13 @@ Kosten:       ~5–15 €/Monat
 | Risiko | Mitigation |
 |---|---|
 | iOS löscht PWA-Session nach 7 Tagen | Refresh Token 30 Tage, stiller Auto-Refresh, User informieren |
-| Rotationslogik bricht bei Swap + Wochenwechsel | `rotationIndex` in DB persistieren, Unit Tests, Admin-Reset |
+| ~~Rotationslogik bricht bei Swap + Wochenwechsel~~ | **AKTUELL:** Keine echte Rotation implementiert – Refactor erforderlich |
 | Payload-Update bricht API | Version pinnen, Staging-Env, Changelog lesen |
-| PostgreSQL-Datenverlust | Tägliche Backups (Railway), wöchentlicher manueller Export, Restore testen |
+| MongoDB-Datenverlust | Tägliche Backups (Railway), wöchentlicher manueller Export, Restore testen |
 | Push auf alten iOS-Geräten fehlt | Fallback: In-App-Notification + E-Mail |
 | Concurrent Writes Einkaufsliste | Optimistic Updates + Server als Source of Truth |
 | Chat verzögert MVP | Chat komplett raus aus MVP |
+| Rotations-Algorithmus fehlerhaft | Testen mit verschiedenen User-Anzahlen, ISO-Week-Edge-Cases (Woche 53) |
 
 ---
 

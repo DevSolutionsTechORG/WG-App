@@ -30,42 +30,51 @@ Alle Subtasks abgeschlossen. Projekt bereit für Auth-Implementierung.
 
 ---
 
-### Task 1.2: Auth & User-Management (~2–3 Tage) 🔄 **IN PROGRESS**
+### Task 1.2: Auth & User-Management (~2–3 Tage) ✅ **COMPLETED**
 **Ziel:** Login-System mit Payload Auth
 
 #### Subtasks:
 | ID | Subtask | Assignee | Status | Notes |
 |----|---------|----------|--------|-------|
-| 1.2.1 | Payload-Auth konfigurieren (JWT + HTTP-only Cookies) | Cascade | **in_progress** | Cookie-Konfig aus Soul.md |
-| 1.2.2 | Users Collection erweitern (name, avatar, role) | Cascade | **in_progress | Payload Admin Panel testen |
-| 1.2.3 | Login-Seite erstellen (React Hook Form + Zod) | Cascade | pending | `/login` Route |
-| 1.2.4 | Session-Management (Auto-Refresh) implementieren | Cascade | pending | 15min Access / 30d Refresh |
-| 1.2.5 | Basis-Layout mit Navigation erstellen | Cascade | pending | Mobile-first Design |
-| 1.2.6 | Admin-only Signup (forgot-password Flow) | Cascade | pending | Keine öffentliche Registrierung |
+| 1.2.1 | Payload-Auth konfigurieren (JWT + HTTP-only Cookies) | Cascade | **completed** | Cookie secure/Lax, tokenExpiration 900s |
+| 1.2.2 | Users Collection erweitern (name, avatar, role) | Cascade | **completed** | name, avatar, role fields in Users.ts |
+| 1.2.3 | Login-Seite erstellen (React Hook Form + Zod) | Cascade | **completed** | /login mit Form-Validierung |
+| 1.2.4 | Session-Management (Auto-Refresh) implementieren | Cascade | **completed** | useAuth hook, /api/users/me, 10min refresh interval |
+| 1.2.5 | Basis-Layout mit Navigation erstellen | Cascade | **completed** | Mobile-first, lucide-react icons, active states |
+| 1.2.6 | Admin-only Signup (forgot-password Flow) | Cascade | **completed** | createUserByAdmin mit Admin-Check, password-reset.ts |
 
 **Dependencies:** 1.1 (Projektsetup)
-**Output:** Login funktioniert, Navigation sichtbar
+**Output:** ✅ Login funktioniert, Navigation sichtbar, Auth-Guards aktiv
+
+**Status:** ✅ **COMPLETED**
 
 ---
 
 ## Phase 2 – Core Features
 
-### Task 2.1: Putzplan (~3–4 Tage)
-**Ziel:** Rotierender Putzplan mit Abhaken-Funktion
+### Task 2.1: Putzplan (~5–6 Tage) ✅ **COMPLETED**
+**Ziel:** Rotierender Putzplan mit wöchentlicher automatischer Rotation, Historie, Abhaken-Funktion und Überfälligkeits-Tracking
+
+> ✅ **Implementation abgeschlossen:** Echte Rotation, persistente Zuweisungen, Historie, Überfällige Tasks-Anzeige
 
 #### Subtasks:
 | ID | Subtask | Assignee | Status | Notes |
 |----|---------|----------|--------|-------|
-| 2.1.1 | CleaningTasks Collection erstellen | TBD | pending | Siehe Agent.md Datamodel |
-| 2.1.2 | Rotationslogik implementieren (ISO-Wochennummer) | TBD | pending | rotationIndex in DB persistieren |
-| 2.1.3 | Putzplan-Übersichtsseite erstellen | TBD | pending | `/cleaning` Route |
-| 2.1.4 | Aufgaben abhaken (completedAt, completedBy) | TBD | pending | Server Action |
-| 2.1.5 | Timestamp-Tracking implementieren | TBD | pending | Wann wurde was erledigt |
-| 2.1.6 | Admin-Reset-Funktion für Rotation | TBD | pending | Nur für role=admin |
-| 2.1.7 | Test-Daten für Putzplan anlegen | TBD | pending | 3-4 Tasks, 2-3 Test-User |
+| 2.1.1 | ~~CleaningTasks Collection erstellen~~ | Cascade | **completed** | Fields: title, description, frequency, rotationIndex (STATISCH) |
+| 2.1.2 | **TaskAssignments Collection erstellen** | Cascade | **completed** | Persistente Zuweisungen pro Woche: template, assignedTo, weekNumber, year, status |
+| 2.1.3 | **TaskTemplates Collection erstellen** | Cascade | **completed** | Templates: title, description, rotationGroup, frequency, isCustom, requiresOptions |
+| 2.1.4 | **Pflegeoptionen für "Anderes"-Task** | Cascade | **completed** | CleaningTaskOptions Collection: title, description, isActive, sortOrder |
+| 2.1.5 | **Korrekte Rotationslogik implementieren** | Cascade | **completed** | `(weekOffset + taskIndex) % userCount` mit rotationGroup für echte Wochen-Rotation |
+| 2.1.6 | **TaskCompletionHistory Collection** | Cascade | **completed** | Historie: assignment, template, completedBy, completedAt, weekNumber, year, notes, selectedOption |
+| 2.1.7 | Automatische Assignment-Generierung | Cascade | **completed** | generateAssignmentsForWeek() on-demand beim ersten Seitenaufruf der Woche |
+| 2.1.8 | Putzplan-Übersichtsseite refactoren | Cascade | **completed** | /cleaning liest aus TaskAssignments, zeigt template, assignedUser, history |
+| 2.1.9 | Aufgaben abhaken mit Historie | Cascade | **completed** | completeTask() updatet Assignment + erstellt TaskCompletionHistory Eintrag |
+| 2.1.10 | Admin: Rotation zurücksetzen | Cascade | **completed** | resetRotation() löscht future Assignments + regeneriert ab aktueller Woche |
+| 2.1.11 | Überfällige Tasks anzeigen | Cascade | **completed** | getOverdueAssignments() + rote UI-Markierung für pending Tasks aus vergangenen Wochen |
+| 2.1.12 | Test-Daten für Putzplan anlegen | TBD | pending | 3 Tasks, 2-3 Test-User, 2 Wochen Assignments |
 
 **Dependencies:** 1.2 (Auth)
-**Output:** Putzplan sichtbar, Aufgaben abhakbar
+**Output:** ✅ Putzplan mit echter wöchentlicher Rotation, Historie, Pflegeoptionen, Überfälligkeits-Tracking
 
 ---
 
