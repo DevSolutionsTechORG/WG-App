@@ -84,13 +84,13 @@ Alle Subtasks abgeschlossen. Projekt bereit für Auth-Implementierung.
 #### Subtasks:
 | ID | Subtask | Assignee | Status | Notes |
 |----|---------|----------|--------|-------|
-| 2.2.1 | ShoppingItems Collection erstellen | TBD | pending | category, priority, completed |
-| 2.2.2 | Einkaufslisten-Seite erstellen | TBD | pending | `/shopping` Route |
-| 2.2.3 | CRUD-Operationen implementieren | TBD | pending | Server Actions |
-| 2.2.4 | Optimistic Updates mit SWR/TanStack Query | TBD | pending | Live-Updates |
-| 2.2.5 | Käufer-Tracking (completedBy) | TBD | pending | Wer hat was gekauft |
-| 2.2.6 | Items wieder freischalten | TBD | pending | Toggle completed Status |
-| 2.2.7 | Kategorie-Filter UI | TBD | pending | cleaning, food, hygiene, other |
+| 2.2.1 | ShoppingItems Collection erstellen | Cascade | **completed** | category, priority, status, requestedBy, completedBy, quantity, unit |
+| 2.2.2 | Einkaufslisten-Seite erstellen | Cascade | **completed** | /shopping mit Filter, Listenansicht, Add-Form |
+| 2.2.3 | CRUD-Operationen implementieren | Cascade | **completed** | getShoppingItems, createShoppingItem, completeShoppingItem, reopenShoppingItem, deleteShoppingItem |
+| 2.2.4 | ~~Optimistic Updates mit SWR/TanStack Query~~ | - | **skipped** | MVP: Server Actions mit page reload |
+| 2.2.5 | Käufer-Tracking (completedBy) | Cascade | **completed** | completeShoppingItem setzt completedBy + completedAt |
+| 2.2.6 | Items wieder freischalten | Cascade | **completed** | reopenShoppingItem() setzt status zurück auf open |
+| 2.2.7 | Kategorie-Filter UI | Cascade | **completed** | CategoryFilter Komponente mit Count-Badges |
 
 **Dependencies:** 1.2 (Auth)
 **Output:** Liste funktioniert, Items hinzufügen/abhaken

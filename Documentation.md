@@ -33,7 +33,7 @@
 | Task | Status | Start | Fertig |
 |------|--------|-------|--------|
 | 2.1 Putzplan | **Completed** | 2026-05-06 | 2026-05-06 | ✅ Rotierender Putzplan mit Historie + Überfälligkeits-Tracking |
-| 2.2 Einkaufsliste | **Pending** | – | – | Kollaborative Liste |
+| 2.2 Einkaufsliste | **Completed** | 2026-05-06 | 2026-05-06 | ✅ Kollaborative Liste mit Kategorien, Prioritäten, Käufer-Tracking |
 
 #### Features in 2.1:
 - ✅ Automatische wöchentliche Rotation via `(weekOffset + taskIndex) % userCount`
@@ -41,6 +41,14 @@
 - ✅ Historie in TaskCompletionHistory (kein Überschreiben)
 - ✅ Überfällige Tasks werden rot markiert und bleiben sichtbar
 - ✅ Pflegeoptionen für "Anderes"-Task
+
+#### Features in 2.2:
+- ✅ ShoppingItems Collection mit category, priority, status
+- ✅ Add-Form mit Titel, Kategorie, Priorität, Menge, Einheit
+- ✅ Kategorie-Filter (Reinigung, Lebensmittel, Sonstiges)
+- ✅ Status-Filter (Offen, Erledigt, Alle)
+- ✅ "Gekauft" Button mit Käufer-Tracking
+- ✅ "Wieder öffnen" für versehentliche Abhaken
 
 ### Kommende Phasen
 
@@ -147,15 +155,19 @@ Ersetzt durch TaskTemplates + TaskAssignments + TaskCompletionHistory
 | createdBy | Relationship → Users |
 | allDay | Checkbox |
 
-### ShoppingItems
-| Feld | Typ |
-|------|-----|
-| name | Text |
-| category | Select |
-| completed | Checkbox |
-| completedBy | Relationship → Users |
-| completedAt | Date |
-| priority | Select |
+### ShoppingItems (NEU)
+| Feld | Typ | Details |
+|------|-----|---------|
+| title | Text | Artikelname |
+| description | Textarea | Details / Notizen |
+| category | Select | food, cleaning, other |
+| priority | Select | high, medium, low |
+| status | Select | open, completed, rejected |
+| requestedBy | Relationship → Users | Wer hat es gewünscht |
+| completedBy | Relationship → Users | Wer hat es gekauft |
+| completedAt | Date | Zeitpunkt des Kaufs |
+| quantity | Number | Menge (optional) |
+| unit | Text | Einheit (optional) |
 
 ---
 
@@ -195,9 +207,12 @@ UPSTASH_REDIS_REST_TOKEN=
 ## Changelog
 
 ### 2026-05-06 (Abend)
+- **Task 2.2 COMPLETED:** Einkaufsliste implementiert
+- ShoppingItems Collection: category, priority, status, requestedBy, completedBy
+- /shopping Seite: Add-Form, Kategorie-Filter, Status-Filter
+- Server Actions: create, complete, reopen, delete
 - **Task 2.1 COMPLETED:** Putzplan fertiggestellt
 - Überfällige Tasks-Anzeige implementiert (getOverdueAssignments + rote UI)
-- Task 2.1 als ✅ COMPLETED in Tasks.md und Documentation.md markiert
 
 ### 2026-05-06 (Nachmittag)
 - **Task 2.1 REFACTORED:** Korrekte Rotation implementiert
