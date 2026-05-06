@@ -7,13 +7,20 @@ import {
   ShoppingCart,
   Users,
 } from 'lucide-react'
+import { endOfWeek, format, getWeek, startOfWeek } from 'date-fns'
 import { getDashboardData, getDashboardStats } from '@/lib/dashboard/actions'
 
 import { EventListOverview } from '@/components/EventListOverview'
 import Link from 'next/link'
 import type { ShoppingItem } from '@/payload-types'
 import { de } from 'date-fns/locale'
-import { format } from 'date-fns'
+
+// Helper function to get week range
+const getWeekRange = (date: Date) => {
+  const weekStart = startOfWeek(date, { weekStartsOn: 1 }) // Monday
+  const weekEnd = endOfWeek(date, { weekStartsOn: 1 }) // Sunday
+  return `${format(weekStart, 'dd.MM.yyyy', { locale: de })} - ${format(weekEnd, 'dd.MM.yyyy', { locale: de })}`
+}
 
 export default async function DashboardPage() {
   const dashboardResult = await getDashboardData()
@@ -93,7 +100,8 @@ export default async function DashboardPage() {
                     </div>
                     {task.dueDate && (
                       <p className="text-sm text-muted-foreground">
-                        Fällig: {format(new Date(task.dueDate), 'dd.MM.yyyy', { locale: de })}
+                        Fällig KW {getWeek(new Date(task.dueDate))}:{' '}
+                        {getWeekRange(new Date(task.dueDate))}
                       </p>
                     )}
                   </div>
