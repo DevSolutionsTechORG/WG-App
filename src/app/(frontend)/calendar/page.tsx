@@ -2,15 +2,8 @@
 
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 
-import { Calendar, SlotInfo, View, Views, dateFnsLocalizer } from 'react-big-calendar'
-import {
-  Calendar as CalendarIcon,
-  ChevronLeft,
-  ChevronRight,
-  MapPin,
-  Plus,
-  Trash2,
-} from 'lucide-react'
+import { Calendar, SlotInfo, Views, dateFnsLocalizer } from 'react-big-calendar'
+import { Calendar as CalendarIcon, Plus, Trash2 } from 'lucide-react'
 import { createEvent, deleteEvent, getEvents, updateEvent } from '@/lib/calendar/actions'
 import {
   format,
@@ -24,6 +17,8 @@ import {
 } from 'date-fns'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
+import { EventListOverview } from '@/components/EventListOverview'
+import type { View } from 'react-big-calendar'
 import { de } from 'date-fns/locale/de'
 
 const locales = { de }
@@ -70,7 +65,7 @@ interface FormData {
   title: string
   startDate: string
   endDate: string
-  allDay: boolean
+  multiDay: boolean
   description: string
   location: string
   eventType: EventType
@@ -78,9 +73,9 @@ interface FormData {
 
 const makeDefaultForm = (start: Date, end: Date): FormData => ({
   title: '',
-  startDate: format(start, "yyyy-MM-dd'T'HH:mm"),
-  endDate: format(end, "yyyy-MM-dd'T'HH:mm"),
-  allDay: false,
+  startDate: format(start, 'yyyy-MM-dd'),
+  endDate: format(end, 'yyyy-MM-dd'),
+  multiDay: false,
   description: '',
   location: '',
   eventType: 'other',
@@ -157,6 +152,17 @@ export default function CalendarPage() {
 
   const handleSelectSlot = useCallback((slotInfo: SlotInfo) => {
     const { start, end } = slotInfo
+    const today = new Date()
+    today.setHours(0, 0, 0, 0) // Set to start of day for comparison
+
+    const slotDate = new Date(start)
+    slotDate.setHours(0, 0, 0, 0) // Set to start of day for comparison
+
+    // Prevent creating events on past dates
+    if (slotDate < today) {
+      return
+    }
+
     setSelectedEvent(null)
     setFormData(makeDefaultForm(start as Date, end as Date))
     setIsModalOpen(true)
@@ -166,9 +172,9 @@ export default function CalendarPage() {
     setSelectedEvent(event)
     setFormData({
       title: event.title,
-      startDate: format(event.start, "yyyy-MM-dd'T'HH:mm"),
-      endDate: format(event.end, "yyyy-MM-dd'T'HH:mm"),
-      allDay: event.allDay ?? false,
+      startDate: format(event.start, 'yyyy-MM-dd'),
+      endDate: format(event.end, 'yyyy-MM-dd'),
+      multiDay: event.start.toDateString() !== event.end.toDateString(),
       description: event.resource?.description ?? '',
       location: event.resource?.location ?? '',
       eventType: event.resource?.eventType ?? 'other',
@@ -177,6 +183,17 @@ export default function CalendarPage() {
   }, [])
 
   const handleDrillDown = useCallback((date: Date) => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0) // Set to start of day for comparison
+
+    const selectedDate = new Date(date)
+    selectedDate.setHours(0, 0, 0, 0) // Set to start of day for comparison
+
+    // Prevent creating events on past dates
+    if (selectedDate < today) {
+      return
+    }
+
     setSelectedEvent(null)
     setFormData(makeDefaultForm(date, new Date(date.getTime() + 60 * 60 * 1000)))
     setIsModalOpen(true)
@@ -242,7 +259,7 @@ export default function CalendarPage() {
       title: formData.title,
       startDate: new Date(formData.startDate).toISOString(),
       endDate: formData.endDate ? new Date(formData.endDate).toISOString() : undefined,
-      allDay: formData.allDay,
+      allDay: true, // Always true since we only use dates
       description: formData.description || undefined,
       location: formData.location || undefined,
       eventType: formData.eventType,
@@ -368,80 +385,16 @@ export default function CalendarPage() {
 
         {/* Event-Liste */}
         <div className="mt-6">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-foreground">
-              Termine im {format(currentDate, 'MMMM yyyy', { locale: de })}
-            </h2>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setCurrentDate((d) => new Date(getYear(d), getMonth(d) - 1, 1))}
-                className="p-1.5 rounded hover:bg-muted"
-                aria-label="Vorheriger Monat"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setCurrentDate(new Date())}
-                className="px-2 py-1 text-xs rounded hover:bg-muted text-muted-foreground"
-              >
-                Heute
-              </button>
-              <button
-                onClick={() => setCurrentDate((d) => new Date(getYear(d), getMonth(d) + 1, 1))}
-                className="p-1.5 rounded hover:bg-muted"
-                aria-label="Nächster Monat"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {currentMonthEvents.length === 0 ? (
-            <p className="text-muted-foreground text-sm py-4 text-center">
-              Keine Termine in diesem Monat
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {currentMonthEvents.map((event) => {
-                const color = eventTypeColors[event.resource?.eventType ?? 'other']
-                const label = eventTypeLabels[event.resource?.eventType ?? 'other']
-                return (
-                  <button
-                    key={event.id}
-                    onClick={() => handleSelectEvent(event)}
-                    className="w-full text-left flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
-                  >
-                    <div
-                      className="mt-0.5 w-1 self-stretch rounded-full flex-shrink-0"
-                      style={{ backgroundColor: color }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-sm truncate">{event.title}</span>
-                        <span
-                          className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: `${color}20`, color }}
-                        >
-                          {label}
-                        </span>
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        {event.allDay
-                          ? format(event.start, 'dd. MMMM', { locale: de })
-                          : `${format(event.start, 'dd. MMM, HH:mm', { locale: de })} – ${format(event.end, 'HH:mm', { locale: de })} Uhr`}
-                      </div>
-                      {event.resource?.location && (
-                        <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-                          <MapPin className="w-3 h-3" />
-                          {event.resource.location}
-                        </div>
-                      )}
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-          )}
+          <EventListOverview
+            events={currentMonthEvents}
+            currentDate={currentDate}
+            onNavigatePrevious={() =>
+              setCurrentDate((d) => new Date(getYear(d), getMonth(d) - 1, 1))
+            }
+            onNavigateToday={() => setCurrentDate(new Date())}
+            onNavigateNext={() => setCurrentDate((d) => new Date(getYear(d), getMonth(d) + 1, 1))}
+            enableModal={true}
+          />
         </div>
       </div>
 
@@ -485,13 +438,20 @@ export default function CalendarPage() {
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  id="allDay"
-                  checked={formData.allDay}
-                  onChange={(e) => updateForm({ allDay: e.target.checked })}
+                  id="multiDay"
+                  checked={formData.multiDay}
+                  onChange={(e) => {
+                    const isMultiDay = e.target.checked
+                    updateForm({ multiDay: isMultiDay })
+                    // If not multi-day, set end date to start date
+                    if (!isMultiDay && formData.startDate) {
+                      updateForm({ endDate: formData.startDate })
+                    }
+                  }}
                   className="rounded"
                 />
-                <label htmlFor="allDay" className="text-sm">
-                  Ganztägig
+                <label htmlFor="multiDay" className="text-sm">
+                  Mehrtägig
                 </label>
               </div>
 
@@ -499,22 +459,40 @@ export default function CalendarPage() {
                 <div>
                   <label className="block text-sm font-medium mb-1">Start *</label>
                   <input
-                    type={formData.allDay ? 'date' : 'datetime-local'}
+                    type="date"
                     value={formData.startDate}
-                    onChange={(e) => updateForm({ startDate: e.target.value })}
+                    min={new Date().toISOString().slice(0, 10)}
+                    onChange={(e) => {
+                      updateForm({ startDate: e.target.value })
+                      // If not multi-day, update end date to match start date
+                      if (!formData.multiDay) {
+                        updateForm({ endDate: e.target.value })
+                      }
+                    }}
                     className="w-full px-3 py-2 border rounded-md"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Ende</label>
+                  <label className="block text-sm font-medium mb-1">
+                    Ende {formData.multiDay ? '*' : ''}
+                  </label>
                   <input
-                    type={formData.allDay ? 'date' : 'datetime-local'}
+                    type="date"
                     value={formData.endDate}
+                    min={formData.startDate}
                     onChange={(e) => updateForm({ endDate: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-md"
+                    disabled={!formData.multiDay}
+                    className={`w-full px-3 py-2 border rounded-md ${
+                      !formData.multiDay ? 'bg-muted cursor-not-allowed' : ''
+                    }`}
                   />
                 </div>
               </div>
+              {formData.multiDay && new Date(formData.endDate) < new Date(formData.startDate) && (
+                <div className="text-sm text-destructive">
+                  Das Enddatum muss nach dem Startdatum liegen
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium mb-1">Ort</label>
@@ -540,7 +518,13 @@ export default function CalendarPage() {
               <div className="flex gap-2 pt-2">
                 <button
                   onClick={handleSave}
-                  disabled={!formData.title || !formData.startDate}
+                  disabled={
+                    !formData.title ||
+                    !formData.startDate ||
+                    (formData.multiDay &&
+                      (!formData.endDate ||
+                        new Date(formData.endDate) < new Date(formData.startDate)))
+                  }
                   className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50"
                 >
                   {selectedEvent ? 'Speichern' : 'Erstellen'}
