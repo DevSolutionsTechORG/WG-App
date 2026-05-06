@@ -69,6 +69,10 @@ export interface Config {
   collections: {
     users: User;
     media: Media;
+    'task-templates': TaskTemplate;
+    'task-assignments': TaskAssignment;
+    'task-completion-history': TaskCompletionHistory;
+    'cleaning-task-options': CleaningTaskOption;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -78,6 +82,10 @@ export interface Config {
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    'task-templates': TaskTemplatesSelect<false> | TaskTemplatesSelect<true>;
+    'task-assignments': TaskAssignmentsSelect<false> | TaskAssignmentsSelect<true>;
+    'task-completion-history': TaskCompletionHistorySelect<false> | TaskCompletionHistorySelect<true>;
+    'cleaning-task-options': CleaningTaskOptionsSelect<false> | CleaningTaskOptionsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -166,6 +174,87 @@ export interface Media {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "task-templates".
+ */
+export interface TaskTemplate {
+  id: string;
+  title: string;
+  description?: string | null;
+  /**
+   * 0 = Gruppe A (wöchentlich rotierend), 1 = Gruppe B, etc.
+   */
+  rotationGroup: number;
+  frequency: 'weekly' | 'biweekly' | 'monthly';
+  /**
+   * User kann Notizen hinzufügen
+   */
+  isCustom?: boolean | null;
+  /**
+   * User kann aus Beispiel-Optionen wählen
+   */
+  requiresOptions?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "task-assignments".
+ */
+export interface TaskAssignment {
+  id: string;
+  template: string | TaskTemplate;
+  assignedTo: string | User;
+  weekNumber: number;
+  year: number;
+  status: 'pending' | 'completed' | 'skipped';
+  dueDate?: string | null;
+  notes?: string | null;
+  title?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "task-completion-history".
+ */
+export interface TaskCompletionHistory {
+  id: string;
+  assignment: string | TaskAssignment;
+  template: string | TaskTemplate;
+  completedBy: string | User;
+  completedAt: string;
+  weekNumber: number;
+  year: number;
+  /**
+   * Was wurde konkret gemacht (besonders für "Anderes")
+   */
+  notes?: string | null;
+  /**
+   * Falls aus Pflegeoptionen gewählt
+   */
+  selectedOption?: string | null;
+  title?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cleaning-task-options".
+ */
+export interface CleaningTaskOption {
+  id: string;
+  /**
+   * z.B. "Fenster putzen", "Müll rausbringen"
+   */
+  title: string;
+  description?: string | null;
+  isActive?: boolean | null;
+  sortOrder?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -195,6 +284,22 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'media';
         value: string | Media;
+      } | null)
+    | ({
+        relationTo: 'task-templates';
+        value: string | TaskTemplate;
+      } | null)
+    | ({
+        relationTo: 'task-assignments';
+        value: string | TaskAssignment;
+      } | null)
+    | ({
+        relationTo: 'task-completion-history';
+        value: string | TaskCompletionHistory;
+      } | null)
+    | ({
+        relationTo: 'cleaning-task-options';
+        value: string | CleaningTaskOption;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -280,6 +385,65 @@ export interface MediaSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "task-templates_select".
+ */
+export interface TaskTemplatesSelect<T extends boolean = true> {
+  title?: T;
+  description?: T;
+  rotationGroup?: T;
+  frequency?: T;
+  isCustom?: T;
+  requiresOptions?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "task-assignments_select".
+ */
+export interface TaskAssignmentsSelect<T extends boolean = true> {
+  template?: T;
+  assignedTo?: T;
+  weekNumber?: T;
+  year?: T;
+  status?: T;
+  dueDate?: T;
+  notes?: T;
+  title?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "task-completion-history_select".
+ */
+export interface TaskCompletionHistorySelect<T extends boolean = true> {
+  assignment?: T;
+  template?: T;
+  completedBy?: T;
+  completedAt?: T;
+  weekNumber?: T;
+  year?: T;
+  notes?: T;
+  selectedOption?: T;
+  title?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cleaning-task-options_select".
+ */
+export interface CleaningTaskOptionsSelect<T extends boolean = true> {
+  title?: T;
+  description?: T;
+  isActive?: T;
+  sortOrder?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
