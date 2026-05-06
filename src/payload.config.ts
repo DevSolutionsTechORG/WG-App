@@ -1,5 +1,6 @@
 import { CleaningTaskOptions } from './collections/CleaningTaskOptions'
 import { Media } from './collections/Media'
+import { ShoppingItems } from './collections/ShoppingItems'
 import { TaskAssignments } from './collections/TaskAssignments'
 import { TaskCompletionHistory } from './collections/TaskCompletionHistory'
 import { TaskTemplates } from './collections/TaskTemplates'
@@ -35,6 +36,7 @@ export default buildConfig({
     TaskAssignments,
     TaskCompletionHistory,
     CleaningTaskOptions,
+    ShoppingItems,
   ],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
