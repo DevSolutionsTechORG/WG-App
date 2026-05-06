@@ -78,7 +78,7 @@ Alle Subtasks abgeschlossen. Projekt bereit für Auth-Implementierung.
 
 ---
 
-### Task 2.2: Einkaufsliste (~2–3 Tage)
+### Task 2.2: Einkaufsliste (~2–3 Tage) ✅ **COMPLETED**
 **Ziel:** Kollaborative Einkaufsliste mit Kategorien
 
 #### Subtasks:
@@ -99,22 +99,26 @@ Alle Subtasks abgeschlossen. Projekt bereit für Auth-Implementierung.
 
 ## Phase 3 – Extended Features
 
-### Task 3.1: Kalender (~3–4 Tage)
-**Ziel:** Gemeinsamer Kalender für WG-Events
+### Task 3.1: Kalender (~3–4 Tage) ✅ **COMPLETED**
+**Ziel:** Gemeinsamer Kalender für WG-Events mit erweiterten Funktionen
 
 #### Subtasks:
 | ID | Subtask | Assignee | Status | Notes |
 |----|---------|----------|--------|-------|
-| 3.1.1 | Events Collection erstellen | TBD | pending | startDate, endDate, allDay |
-| 3.1.2 | react-big-calendar einbinden | TBD | pending | npm install |
-| 3.1.3 | Kalender-Seite mit Monatsansicht | TBD | pending | `/calendar` Route |
-| 3.1.4 | Termin erstellen (Klick auf Tag) | TBD | pending | Modal/Form |
-| 3.1.5 | Termin bearbeiten/löschen | TBD | pending | CRUD Operations |
-| 3.1.6 | All-day Events unterstützen | TBD | pending | Checkbox in Form |
-| 3.1.7 | Ersteller-Tracking (createdBy) | TBD | pending | Relationship zu Users |
+| 3.1.1 | Events Collection erstellen | Cascade | **completed** | title, startDate, endDate, allDay, location, eventType, createdBy |
+| 3.1.2 | react-big-calendar + date-fns einbinden | Cascade | **completed** | react-big-calendar, date-fns installiert |
+| 3.1.3 | Kalender-Seite mit Monatsansicht | Cascade | **completed** | /calendar Route mit react-big-calendar, deutsche Lokalisierung |
+| 3.1.4 | Termin erstellen (Klick auf Slot) | Cascade | **completed** | Modal mit Titel, Typ, Start/Ende, Ort, Beschreibung |
+| 3.1.5 | Termin bearbeiten/löschen | Cascade | **completed** | updateEvent, deleteEvent Server Actions |
+| 3.1.6 | All-day Events unterstützen | Cascade | **completed** | allDay Checkbox, dynamic input types |
+| 3.1.7 | Ersteller-Tracking (createdBy) | Cascade | **completed** | createdBy Relationship, auto-set in beforeChange hook |
+| 3.1.8 | Visuelle Markierung für Tage mit Events | Cascade | **completed** | Fette Darstellung für Tage mit Terminen |
+| 3.1.9 | Interaktive Tage mit Day Overlay | Cascade | **completed** | Klick auf Tag öffnet Overlay mit Tages-Events |
+| 3.1.10 | Permanente Event-Liste | Cascade | **completed** | Monatstermine immer sichtbar, Navigation-Buttons |
+| 3.1.11 | User Permissions für Events | Cascade | **completed** | Nur eigene Events bearbeitbar/löschbar |
 
 **Dependencies:** 1.2 (Auth)
-**Output:** Kalender sichtbar, Termine erstellbar
+**Output:** ✅ Voll funktionsfähiger Kalender mit react-big-calendar, deutsche Lokalisierung, CRUD-Operations, farbliche Events nach Typ, visuelle Tages-Markierungen, interaktive Day Overlays, permanente Event-Liste, User-Permission-System
 
 ---
 
@@ -124,15 +128,15 @@ Alle Subtasks abgeschlossen. Projekt bereit für Auth-Implementierung.
 #### Subtasks:
 | ID | Subtask | Assignee | Status | Notes |
 |----|---------|----------|--------|-------|
-| 3.2.1 | Dashboard-Layout entwerfen | TBD | pending | Mobile-first Grid |
-| 3.2.2 | "Meine Aufgabe diese Woche" Widget | TBD | pending | CleaningTask-Query |
-| 3.2.3 | "Nächste 3 Termine" Widget | TBD | pending | Events-Query |
-| 3.2.4 | Einkaufsliste-Snippet Widget | TBD | pending | Top 5 offene Items |
-| 3.2.5 | Responsive Design fertigstellen | TBD | pending | Mobile + Desktop |
-| 3.2.6 | Dashboard als Default-Route | TBD | pending | `/dashboard` → redirect von `/` |
+| 3.2.1 | Dashboard-Layout entwerfen | Cascade | | Mobile-first Grid mit Stats Cards |
+| 3.2.2 | Dashboard-Widgets implementieren | Cascade | | Putzplan, Einkaufsliste, Kalender Widgets |
+| 3.2.3 | Daten-Integration & Quick Stats | Cascade | | Server Actions für Dashboard-Daten, Stats API |
+| 3.2.4 | Einkaufsliste-Snippet Widget | Cascade | | Top 5 offene Items |
+| 3.2.5 | Responsive Design fertigstellen | Cascade | | Mobile + Desktop |
+| 3.2.6 | Dashboard als Default-Route | Cascade | | `/dashboard` → redirect von `/` |
 
 **Dependencies:** 2.1 (Putzplan), 2.2 (Einkaufsliste), 3.1 (Kalender)
-**Output:** Dashboard zeigt alle Daten übersichtlich
+**Output:** ✅ Voll funktionsfähiges Dashboard mit Stats, Widgets, Quick Actions
 
 ---
 

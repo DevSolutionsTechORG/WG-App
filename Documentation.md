@@ -34,6 +34,8 @@
 |------|--------|-------|--------|
 | 2.1 Putzplan | **Completed** | 2026-05-06 | 2026-05-06 | ✅ Rotierender Putzplan mit Historie + Überfälligkeits-Tracking |
 | 2.2 Einkaufsliste | **Completed** | 2026-05-06 | 2026-05-06 | ✅ Kollaborative Liste mit Kategorien, Prioritäten, Käufer-Tracking |
+| 3.1 Kalender | **Completed** | 2026-05-06 | 2026-05-06 | ✅ Voll funktionsfähiger WG-Kalender mit erweiterten Funktionen |
+| 3.2 Dashboard | **Completed** | 2026-05-06 | 2026-05-06 | ✅ Übersicht mit Stats, Widgets, Quick Actions, responsive Design |
 
 #### Features in 2.1:
 - ✅ Automatische wöchentliche Rotation via `(weekOffset + taskIndex) % userCount`
@@ -50,11 +52,35 @@
 - ✅ "Gekauft" Button mit Käufer-Tracking
 - ✅ "Wieder öffnen" für versehentliche Abhaken
 
+#### Features in 3.1:
+- ✅ Events Collection mit title, startDate, endDate, allDay, location, eventType, createdBy
+- ✅ react-big-calendar mit deutscher Lokalisierung
+- ✅ Termin erstellen/bearbeiten/löschen mit Modal
+- ✅ All-day Events mit dynamischen Input-Typen
+- ✅ Farbliche Events nach Typ (WG-Treffen, Party, Reinigung, Sonstiges)
+- ✅ Monat/Woche/Tag Ansichten
+- ✅ Visuelle Markierung für Tage mit Events (fette Darstellung)
+- ✅ Interaktive Tage mit Day Overlay (Klick öffnet Tages-Ansicht)
+- ✅ Permanente Event-Liste unter Kalender (immer sichtbar)
+- ✅ Navigation-Buttons für Vor/Zurück/Heute
+- ✅ User Permission System (nur eigene Events bearbeitbar/löschbar)
+- ✅ Event-Typ Labels und Farbcodierung
+- ✅ Optimiertes Mobile-First Design
+
+#### Features in 3.2:
+- ✅ Dashboard mit 4 Stats Cards (Einkäufe, Aufgaben, Events, User)
+- ✅ Meine Aufgaben Widget mit Fälligkeits-Info
+- ✅ Überfällige Aufgaben Warn-Widget
+- ✅ Kommende Events Widget (nächste 7 Tage)
+- ✅ Quick Actions zu allen Hauptbereichen
+- ✅ Responsive Design (Mobile + Desktop)
+- ✅ Server Actions für Dashboard-Daten
+
 ### Kommende Phasen
 
 | Phase | Status |
 |-------|--------|
-| 3 – Extended Features (Kalender, Dashboard) | Pending |
+| 3 – Extended Features (Kalender, Dashboard) | 🔄 IN PROGRESS |
 | 4 – PWA | Pending |
 | 5 – Launch | Pending |
 
@@ -169,6 +195,18 @@ Ersetzt durch TaskTemplates + TaskAssignments + TaskCompletionHistory
 | quantity | Number | Menge (optional) |
 | unit | Text | Einheit (optional) |
 
+### Events (NEU)
+| Feld | Typ | Details |
+|------|-----|---------|
+| title | Text | Titel des Events |
+| description | Textarea | Beschreibung |
+| startDate | Date | Startdatum mit Uhrzeit |
+| endDate | Date | Enddatum mit Uhrzeit (optional) |
+| allDay | Checkbox | Ganztägiger Termin |
+| location | Text | Ort des Events |
+| eventType | Select | wg-meeting, party, cleaning, other |
+| createdBy | Relationship → Users | Ersteller des Events |
+
 ---
 
 ## Umgebungsvariablen
@@ -206,13 +244,25 @@ UPSTASH_REDIS_REST_TOKEN=
 
 ## Changelog
 
-### 2026-05-06 (Abend)
+### 2026-05-06 (Nachmittag)
 - **Task 2.2 COMPLETED:** Einkaufsliste implementiert
 - ShoppingItems Collection: category, priority, status, requestedBy, completedBy
 - /shopping Seite: Add-Form, Kategorie-Filter, Status-Filter
 - Server Actions: create, complete, reopen, delete
 - **Task 2.1 COMPLETED:** Putzplan fertiggestellt
 - Überfällige Tasks-Anzeige implementiert (getOverdueAssignments + rote UI)
+
+### 2026-05-06 (Abend)
+- **Task 3.1 COMPLETED:** Kalender mit erweiterten Funktionen implementiert
+- Visuelle Markierung für Tage mit Events (fette Darstellung)
+- Interaktive Tage mit Day Overlay (Klick öffnet Tages-Ansicht)
+- Permanente Event-Liste unter Kalender (immer sichtbar)
+- Navigation-Buttons für Vor/Zurück/Heute
+- User Permission System (nur eigene Events bearbeitbar/löschbar)
+- Event-Typ Labels und Farbcodierung
+- Optimiertes Mobile-First Design
+- Day Overlay mit "Termin erstellen" Button
+- Chronologische Sortierung der Events
 
 ### 2026-05-06 (Nachmittag)
 - **Task 2.1 REFACTORED:** Korrekte Rotation implementiert
