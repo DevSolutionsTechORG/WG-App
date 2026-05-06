@@ -73,6 +73,7 @@ export interface Config {
     'task-assignments': TaskAssignment;
     'task-completion-history': TaskCompletionHistory;
     'cleaning-task-options': CleaningTaskOption;
+    'shopping-items': ShoppingItem;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -86,6 +87,7 @@ export interface Config {
     'task-assignments': TaskAssignmentsSelect<false> | TaskAssignmentsSelect<true>;
     'task-completion-history': TaskCompletionHistorySelect<false> | TaskCompletionHistorySelect<true>;
     'cleaning-task-options': CleaningTaskOptionsSelect<false> | CleaningTaskOptionsSelect<true>;
+    'shopping-items': ShoppingItemsSelect<false> | ShoppingItemsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -255,6 +257,34 @@ export interface CleaningTaskOption {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "shopping-items".
+ */
+export interface ShoppingItem {
+  id: string;
+  title: string;
+  description?: string | null;
+  category: 'cleaning' | 'food' | 'other';
+  priority: 'high' | 'medium' | 'low';
+  status: 'open' | 'completed' | 'rejected';
+  requestedBy: string | User;
+  /**
+   * Wer hat diesen Artikel gekauft
+   */
+  completedBy?: (string | null) | User;
+  completedAt?: string | null;
+  /**
+   * Optional: Anzahl oder Menge
+   */
+  quantity?: number | null;
+  /**
+   * z.B. Stück, Packung, kg, Liter
+   */
+  unit?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -300,6 +330,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'cleaning-task-options';
         value: string | CleaningTaskOption;
+      } | null)
+    | ({
+        relationTo: 'shopping-items';
+        value: string | ShoppingItem;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -442,6 +476,24 @@ export interface CleaningTaskOptionsSelect<T extends boolean = true> {
   description?: T;
   isActive?: T;
   sortOrder?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "shopping-items_select".
+ */
+export interface ShoppingItemsSelect<T extends boolean = true> {
+  title?: T;
+  description?: T;
+  category?: T;
+  priority?: T;
+  status?: T;
+  requestedBy?: T;
+  completedBy?: T;
+  completedAt?: T;
+  quantity?: T;
+  unit?: T;
   updatedAt?: T;
   createdAt?: T;
 }
