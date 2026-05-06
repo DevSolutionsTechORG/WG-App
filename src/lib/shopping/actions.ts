@@ -6,6 +6,13 @@ import config from '@/payload.config'
 import { headers as getHeaders } from 'next/headers.js'
 import { getPayload } from 'payload'
 
+interface PayloadWhere {
+  [key: string]: { equals: string } | PayloadWhere[] | undefined
+  status?: { equals: string }
+  category?: { equals: string }
+  and?: PayloadWhere[]
+}
+
 /**
  * Get all shopping items
  */
@@ -20,7 +27,7 @@ export async function getShoppingItems(category?: string, status: string = 'open
       return { success: false, message: 'Not authenticated', items: [] }
     }
 
-    const where: Record<string, unknown> = {}
+    const where: PayloadWhere = {}
 
     if (status !== 'all') {
       where.status = { equals: status }
@@ -32,7 +39,7 @@ export async function getShoppingItems(category?: string, status: string = 'open
 
     const result = await payload.find({
       collection: 'shopping-items',
-      where,
+      where: where as any,
       sort: '-priority', // High priority first
       depth: 1,
       limit: 200,
