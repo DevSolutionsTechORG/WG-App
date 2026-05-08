@@ -19,9 +19,14 @@ const dirname = path.dirname(filename)
 const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build'
 
 const payloadSecret = process.env.PAYLOAD_SECRET
-if (!isBuildPhase && (!payloadSecret || payloadSecret.length < 32)) {
+if (!isBuildPhase && !payloadSecret) {
   throw new Error(
-    'PAYLOAD_SECRET must be set and at least 32 characters long. Generate one with: openssl rand -hex 32',
+    'PAYLOAD_SECRET must be set. Generate one with: openssl rand -hex 32',
+  )
+}
+if (!isBuildPhase && payloadSecret && payloadSecret.length < 32) {
+  console.warn(
+    'PAYLOAD_SECRET is shorter than 32 characters. Rotate to a stronger secret: openssl rand -hex 32',
   )
 }
 
