@@ -5,6 +5,7 @@ import type { Event, User } from '@/payload-types'
 import config from '@/payload.config'
 import { headers as getHeaders } from 'next/headers.js'
 import { getPayload } from 'payload'
+import { createEventSchema, idSchema, updateEventSchema } from '@/lib/schemas'
 
 /**
  * Get events for a date range
@@ -48,18 +49,12 @@ export async function getEvents(startDate?: string, endDate?: string) {
   }
 }
 
-/**
- * Create new event
- */
-export async function createEvent(data: {
-  title: string
-  startDate: string
-  endDate?: string
-  allDay?: boolean
-  description?: string
-  location?: string
-  eventType?: 'wg-meeting' | 'party' | 'cleaning' | 'other'
-}) {
+export async function createEvent(input: unknown) {
+  const parsed = createEventSchema.safeParse(input)
+  if (!parsed.success) {
+    return { success: false, message: 'Ungültige Eingabe' }
+  }
+
   try {
     const headers = await getHeaders()
     const payloadConfig = await config
@@ -73,7 +68,7 @@ export async function createEvent(data: {
     const event = await payload.create({
       collection: 'events',
       data: {
-        ...data,
+        ...parsed.data,
         createdBy: currentUser.id,
       },
     })
@@ -85,21 +80,25 @@ export async function createEvent(data: {
   }
 }
 
-/**
- * Update event
- */
-export async function updateEvent(
-  eventId: string,
-  data: {
-    title?: string
-    startDate?: string
-    endDate?: string
-    allDay?: boolean
-    description?: string
-    location?: string
-    eventType?: 'wg-meeting' | 'party' | 'cleaning' | 'other'
-  },
-) {
+async function loadEventOwner(payload: Awaited<ReturnType<typeof getPayload>>, eventId: string) {
+  const event = (await payload.findByID({
+    collection: 'events',
+    id: eventId,
+    depth: 0,
+    overrideAccess: true,
+  })) as Event | null
+  if (!event) return null
+  const ownerId = typeof event.createdBy === 'string' ? event.createdBy : (event.createdBy as User).id
+  return { event, ownerId }
+}
+
+export async function updateEvent(eventId: unknown, input: unknown) {
+  const idResult = idSchema.safeParse(eventId)
+  const dataResult = updateEventSchema.safeParse(input)
+  if (!idResult.success || !dataResult.success) {
+    return { success: false, message: 'Ungültige Eingabe' }
+  }
+
   try {
     const headers = await getHeaders()
     const payloadConfig = await config
@@ -110,10 +109,17 @@ export async function updateEvent(
       return { success: false, message: 'Not authenticated' }
     }
 
+    const owner = await loadEventOwner(payload, idResult.data)
+    if (!owner) return { success: false, message: 'Termin nicht gefunden' }
+
+    if (currentUser.role !== 'admin' && owner.ownerId !== currentUser.id) {
+      return { success: false, message: 'Nicht berechtigt' }
+    }
+
     const event = await payload.update({
       collection: 'events',
-      id: eventId,
-      data,
+      id: idResult.data,
+      data: dataResult.data,
     })
 
     return { success: true, event, message: 'Termin aktualisiert' }
@@ -123,10 +129,12 @@ export async function updateEvent(
   }
 }
 
-/**
- * Delete event
- */
-export async function deleteEvent(eventId: string) {
+export async function deleteEvent(eventId: unknown) {
+  const idResult = idSchema.safeParse(eventId)
+  if (!idResult.success) {
+    return { success: false, message: 'Ungültige Eingabe' }
+  }
+
   try {
     const headers = await getHeaders()
     const payloadConfig = await config
@@ -137,9 +145,16 @@ export async function deleteEvent(eventId: string) {
       return { success: false, message: 'Not authenticated' }
     }
 
+    const owner = await loadEventOwner(payload, idResult.data)
+    if (!owner) return { success: false, message: 'Termin nicht gefunden' }
+
+    if (currentUser.role !== 'admin' && owner.ownerId !== currentUser.id) {
+      return { success: false, message: 'Nicht berechtigt' }
+    }
+
     await payload.delete({
       collection: 'events',
-      id: eventId,
+      id: idResult.data,
     })
 
     return { success: true, message: 'Termin gelöscht' }
