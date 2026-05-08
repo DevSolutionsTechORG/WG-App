@@ -1,5 +1,11 @@
-import type { CollectionConfig } from 'payload'
+import type { Access, CollectionConfig } from 'payload'
 import { authenticated } from '@/access/authenticated'
+
+const isOwnerOrAdmin: Access = ({ req: { user } }) => {
+  if (!user) return false
+  if (user.role === 'admin') return true
+  return { createdBy: { equals: user.id } }
+}
 
 export const Events: CollectionConfig = {
   slug: 'events',
@@ -10,8 +16,8 @@ export const Events: CollectionConfig = {
   access: {
     read: authenticated,
     create: authenticated,
-    update: authenticated,
-    delete: ({ req: { user } }) => user?.role === 'admin',
+    update: isOwnerOrAdmin,
+    delete: isOwnerOrAdmin,
   },
   fields: [
     {
