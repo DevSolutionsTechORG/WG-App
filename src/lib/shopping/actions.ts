@@ -5,6 +5,7 @@ import type { ShoppingItem, User } from '@/payload-types'
 import config from '@/payload.config'
 import { headers as getHeaders } from 'next/headers.js'
 import { getPayload } from 'payload'
+import { createShoppingItemSchema, idSchema } from '@/lib/schemas'
 
 interface PayloadWhere {
   [key: string]: { equals: string } | PayloadWhere[] | undefined
@@ -40,7 +41,7 @@ export async function getShoppingItems(category?: string, status: string = 'open
     const result = await payload.find({
       collection: 'shopping-items',
       where: where as any,
-      sort: '-priority', // High priority first
+      sort: '-priority',
       depth: 1,
       limit: 200,
     })
@@ -56,17 +57,12 @@ export async function getShoppingItems(category?: string, status: string = 'open
   }
 }
 
-/**
- * Create new shopping item
- */
-export async function createShoppingItem(data: {
-  title: string
-  category: 'food' | 'cleaning' | 'other'
-  priority: 'high' | 'medium' | 'low'
-  description?: string
-  quantity?: number
-  unit?: string
-}) {
+export async function createShoppingItem(input: unknown) {
+  const parsed = createShoppingItemSchema.safeParse(input)
+  if (!parsed.success) {
+    return { success: false, message: 'Ungültige Eingabe' }
+  }
+
   try {
     const headers = await getHeaders()
     const payloadConfig = await config
@@ -80,15 +76,10 @@ export async function createShoppingItem(data: {
     const item = await payload.create({
       collection: 'shopping-items',
       data: {
-        title: data.title,
-        category: data.category,
-        priority: data.priority,
-        description: data.description,
-        quantity: data.quantity,
-        unit: data.unit,
+        ...parsed.data,
         status: 'open',
         requestedBy: currentUser.id,
-      } as const,
+      },
     })
 
     return { success: true, item, message: 'Artikel hinzugefügt' }
@@ -98,10 +89,10 @@ export async function createShoppingItem(data: {
   }
 }
 
-/**
- * Complete (buy) a shopping item
- */
-export async function completeShoppingItem(itemId: string) {
+export async function completeShoppingItem(itemId: unknown) {
+  const idResult = idSchema.safeParse(itemId)
+  if (!idResult.success) return { success: false, message: 'Ungültige Eingabe' }
+
   try {
     const headers = await getHeaders()
     const payloadConfig = await config
@@ -114,7 +105,7 @@ export async function completeShoppingItem(itemId: string) {
 
     const item = await payload.update({
       collection: 'shopping-items',
-      id: itemId,
+      id: idResult.data,
       data: {
         status: 'completed',
         completedBy: currentUser.id,
@@ -129,10 +120,10 @@ export async function completeShoppingItem(itemId: string) {
   }
 }
 
-/**
- * Reopen a completed shopping item
- */
-export async function reopenShoppingItem(itemId: string) {
+export async function reopenShoppingItem(itemId: unknown) {
+  const idResult = idSchema.safeParse(itemId)
+  if (!idResult.success) return { success: false, message: 'Ungültige Eingabe' }
+
   try {
     const headers = await getHeaders()
     const payloadConfig = await config
@@ -145,7 +136,7 @@ export async function reopenShoppingItem(itemId: string) {
 
     const item = await payload.update({
       collection: 'shopping-items',
-      id: itemId,
+      id: idResult.data,
       data: {
         status: 'open',
         completedBy: null,
@@ -160,23 +151,39 @@ export async function reopenShoppingItem(itemId: string) {
   }
 }
 
-/**
- * Delete shopping item (admin only)
- */
-export async function deleteShoppingItem(itemId: string) {
+export async function deleteShoppingItem(itemId: unknown) {
+  const idResult = idSchema.safeParse(itemId)
+  if (!idResult.success) return { success: false, message: 'Ungültige Eingabe' }
+
   try {
     const headers = await getHeaders()
     const payloadConfig = await config
     const payload = await getPayload({ config: payloadConfig })
 
     const { user: currentUser } = await payload.auth({ headers })
-    if (!currentUser || currentUser.role !== 'admin') {
-      return { success: false, message: 'Admin required' }
+    if (!currentUser) {
+      return { success: false, message: 'Not authenticated' }
+    }
+
+    const item = (await payload.findByID({
+      collection: 'shopping-items',
+      id: idResult.data,
+      overrideAccess: true,
+      depth: 0,
+    })) as ShoppingItem | null
+
+    if (!item) return { success: false, message: 'Artikel nicht gefunden' }
+
+    const requesterId =
+      typeof item.requestedBy === 'string' ? item.requestedBy : (item.requestedBy as User).id
+
+    if (currentUser.role !== 'admin' && requesterId !== currentUser.id) {
+      return { success: false, message: 'Nicht berechtigt' }
     }
 
     await payload.delete({
       collection: 'shopping-items',
-      id: itemId,
+      id: idResult.data,
     })
 
     return { success: true, message: 'Artikel gelöscht' }
@@ -215,7 +222,6 @@ export async function getCategoryCounts() {
       counts[category] = result.totalDocs
     }
 
-    // Get total open count
     const totalResult = await payload.find({
       collection: 'shopping-items',
       where: {

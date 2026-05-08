@@ -1,5 +1,5 @@
 import type { CollectionConfig } from 'payload'
-import { anyone } from '@/access/anyone'
+import { authenticated } from '@/access/authenticated'
 
 export const TaskTemplates: CollectionConfig = {
   slug: 'task-templates',
@@ -8,7 +8,7 @@ export const TaskTemplates: CollectionConfig = {
     defaultColumns: ['title', 'rotationGroup', 'frequency', 'isCustom'],
   },
   access: {
-    read: anyone,
+    read: authenticated,
     create: ({ req: { user } }) => user?.role === 'admin',
     update: ({ req: { user } }) => user?.role === 'admin',
     delete: ({ req: { user } }) => user?.role === 'admin',

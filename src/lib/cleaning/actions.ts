@@ -5,6 +5,7 @@ import type { TaskAssignment, TaskCompletionHistory, TaskTemplate, User } from '
 import config from '@/payload.config'
 import { headers as getHeaders } from 'next/headers.js'
 import { getPayload } from 'payload'
+import { completeTaskSchema } from '@/lib/schemas'
 
 /**
  * Get ISO week number for a date
@@ -279,7 +280,12 @@ function getFridayOfWeek(year: number, week: number): Date {
  * Mark a task assignment as completed
  * Creates entry in TaskCompletionHistory
  */
-export async function completeTask(assignmentId: string, notes?: string, selectedOption?: string) {
+export async function completeTask(assignmentId: unknown, notes?: unknown, selectedOption?: unknown) {
+  const parsed = completeTaskSchema.safeParse({ assignmentId, notes, selectedOption })
+  if (!parsed.success) {
+    return { success: false, message: 'Ungültige Eingabe' }
+  }
+
   try {
     const headers = await getHeaders()
     const payloadConfig = await config
@@ -298,7 +304,7 @@ export async function completeTask(assignmentId: string, notes?: string, selecte
     // Get assignment
     const assignment = (await payload.findByID({
       collection: 'task-assignments',
-      id: assignmentId,
+      id: parsed.data.assignmentId,
       depth: 1,
     })) as TaskAssignment
 
@@ -319,29 +325,29 @@ export async function completeTask(assignmentId: string, notes?: string, selecte
       return { success: false, message: 'Nur der zugewiesene Nutzer kann diese Aufgabe abhaken' }
     }
 
-    // Update assignment status
+    // overrideAccess is required because TaskAssignments and TaskCompletionHistory access
+    // restrict mutations to admins only — we've already verified the assigned user above.
     await payload.update({
       collection: 'task-assignments',
-      id: assignmentId,
+      id: parsed.data.assignmentId,
       data: {
         status: 'completed',
-        notes: notes || assignment.notes,
+        notes: parsed.data.notes || assignment.notes,
       },
       overrideAccess: true,
     })
 
-    // Create completion history entry
     await payload.create({
       collection: 'task-completion-history',
       data: {
-        assignment: assignmentId,
+        assignment: parsed.data.assignmentId,
         template: template.id,
         completedBy: currentUser.id,
         completedAt: now.toISOString(),
         weekNumber: currentWeek,
         year: currentYear,
-        notes: notes || '',
-        selectedOption: selectedOption || '',
+        notes: parsed.data.notes || '',
+        selectedOption: parsed.data.selectedOption || '',
       },
       overrideAccess: true,
     })

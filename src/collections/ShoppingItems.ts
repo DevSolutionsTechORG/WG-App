@@ -1,5 +1,11 @@
-import type { CollectionConfig } from 'payload'
+import type { Access, CollectionConfig } from 'payload'
 import { authenticated } from '@/access/authenticated'
+
+const isRequesterOrAdmin: Access = ({ req: { user } }) => {
+  if (!user) return false
+  if (user.role === 'admin') return true
+  return { requestedBy: { equals: user.id } }
+}
 
 export const ShoppingItems: CollectionConfig = {
   slug: 'shopping-items',
@@ -11,7 +17,7 @@ export const ShoppingItems: CollectionConfig = {
     read: authenticated,
     create: authenticated,
     update: authenticated,
-    delete: ({ req: { user } }) => user?.role === 'admin',
+    delete: isRequesterOrAdmin,
   },
   fields: [
     {

@@ -3,40 +3,59 @@
 import config from '@/payload.config'
 import { headers as getHeaders } from 'next/headers.js'
 import { getPayload } from 'payload'
+import {
+  createUserSchema,
+  requestPasswordResetSchema,
+  resetPasswordSchema,
+} from '@/lib/schemas'
 
 /**
- * Request password reset
- * Admin-only: Sends reset email to user
+ * Request password reset.
+ * Public — anyone can request a reset for an existing email. Rate-limited via middleware.
+ * Always returns generic success to avoid leaking which emails exist.
  */
-export async function requestPasswordReset(email: string) {
+export async function requestPasswordReset(email: unknown) {
+  const parsed = requestPasswordResetSchema.safeParse({ email })
+  if (!parsed.success) {
+    return { success: true, message: 'Wenn die E-Mail existiert, wurde eine Reset-Mail gesendet.' }
+  }
+
   try {
     const payloadConfig = await config
     const payload = await getPayload({ config: payloadConfig })
 
     await payload.forgotPassword({
       collection: 'users',
-      data: { email },
+      data: { email: parsed.data.email },
+      // overrideAccess: required because Payload's forgotPassword by default
+      // restricts to authenticated users; we want unauthenticated reset requests.
       overrideAccess: true,
     })
-
-    return { success: true, message: 'Password reset email sent' }
   } catch (error) {
     console.error('Password reset error:', error)
-    return { success: false, message: 'Failed to send reset email' }
   }
+
+  return { success: true, message: 'Wenn die E-Mail existiert, wurde eine Reset-Mail gesendet.' }
 }
 
 /**
- * Reset password with token
+ * Reset password with token. Public — token authenticates the request.
  */
-export async function resetPassword(token: string, password: string) {
+export async function resetPassword(token: unknown, password: unknown) {
+  const parsed = resetPasswordSchema.safeParse({ token, password })
+  if (!parsed.success) {
+    return { success: false, message: 'Ungültige Eingabe' }
+  }
+
   try {
     const payloadConfig = await config
     const payload = await getPayload({ config: payloadConfig })
 
     const result = await payload.resetPassword({
       collection: 'users',
-      data: { token, password },
+      data: { token: parsed.data.token, password: parsed.data.password },
+      // overrideAccess: required because resetPassword default access is admin-only;
+      // the cryptographic token itself authenticates the request.
       overrideAccess: true,
     })
 
@@ -48,21 +67,20 @@ export async function resetPassword(token: string, password: string) {
 }
 
 /**
- * Create user (Admin only)
- * No public signup allowed - requires admin authentication
+ * Create user (Admin only).
+ * No public signup allowed - requires admin authentication.
  */
-export async function createUserByAdmin(data: {
-  email: string
-  password: string
-  name: string
-  role?: 'member' | 'admin'
-}) {
+export async function createUserByAdmin(input: unknown) {
+  const parsed = createUserSchema.safeParse(input)
+  if (!parsed.success) {
+    return { success: false, message: 'Ungültige Eingabe' }
+  }
+
   try {
     const headers = await getHeaders()
     const payloadConfig = await config
     const payload = await getPayload({ config: payloadConfig })
 
-    // Verify admin is authenticated
     const { user: adminUser } = await payload.auth({ headers })
 
     if (!adminUser || adminUser.role !== 'admin') {
@@ -72,12 +90,11 @@ export async function createUserByAdmin(data: {
     const user = await payload.create({
       collection: 'users',
       data: {
-        email: data.email,
-        password: data.password,
-        name: data.name,
-        role: data.role || 'member',
+        email: parsed.data.email,
+        password: parsed.data.password,
+        name: parsed.data.name,
+        role: parsed.data.role || 'member',
       },
-      overrideAccess: true,
     })
 
     return { success: true, user }

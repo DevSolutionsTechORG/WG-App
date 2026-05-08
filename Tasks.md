@@ -144,19 +144,33 @@ Alle Subtasks abgeschlossen. Projekt bereit für Auth-Implementierung.
 
 ## Phase 4 – PWA
 
-### Task 4.1: PWA-Konfiguration (~1–2 Tage)
+### Task 4.1: PWA-Konfiguration ✅ **COMPLETED**
 **Ziel:** Installierbare App mit Offline-Support
 
 #### Subtasks:
 | ID | Subtask | Assignee | Status | Notes |
 |----|---------|----------|--------|-------|
-| 4.1.1 | next-pwa installieren und konfigurieren | TBD | pending | next-pwa + Workbox |
-| 4.1.2 | manifest.json erstellen | TBD | pending | name, icons, theme_color |
-| 4.1.3 | App-Icons generieren (verschiedene Größen) | TBD | pending | 192x192, 512x512 |
-| 4.1.4 | Service Worker konfigurieren | TBD | pending | Cache-Strategien |
-| 4.1.5 | Cache-First: App-Shell | TBD | pending | HTML/JS/CSS |
-| 4.1.6 | Stale-While-Revalidate: Daten | TBD | pending | Putzplan, Einkaufsliste |
-| 4.1.7 | iOS "Add to Home Screen" testen | TBD | pending | Simulator/Gerät |
+| 4.1.1 | next-pwa installieren und konfigurieren | Claude | **completed** | next-pwa@5.6.0 + Workbox |
+| 4.1.2 | manifest.json erweitert | Claude | **completed** | id, scope, lang, orientation, categories, alle Icons |
+| 4.1.3 | App-Icons generieren | Claude | **completed** | 192/512 (any+maskable), apple-touch-icon-180 |
+| 4.1.4 | Service Worker konfigurieren | Claude | **completed** | next-pwa default config |
+| 4.1.5 | Layout-Metadata + viewport | Claude | **completed** | metadata, appleWebApp, icons, themeColor |
+| 4.1.6 | iOS "Add to Home Screen" testen | TBD | pending | Manuelle Verifikation auf Gerät |
+
+### Task 5.0: Security Hardening (NEU) ✅ **COMPLETED**
+**Ziel:** Sicherheitslücken vor Deployment schließen
+
+| ID | Subtask | Assignee | Status | Notes |
+|----|---------|----------|--------|-------|
+| 5.0.1 | Boot-Validierung für PAYLOAD_SECRET / DATABASE_URL | Claude | **completed** | min 32 Zeichen Secret |
+| 5.0.2 | AutoLogin restriktiv (nur Dev + Env-Vars) | Claude | **completed** | Default-Credentials entfernt |
+| 5.0.3 | Brute-Force-Schutz (Users) | Claude | **completed** | maxLoginAttempts:5, lockTime:10min |
+| 5.0.4 | sameSite: Strict für Auth-Cookies | Claude | **completed** | |
+| 5.0.5 | Security-Header in next.config.ts | Claude | **completed** | CSP (app+admin), HSTS, X-Frame, etc. |
+| 5.0.6 | Rate-Limiting Middleware | Claude | **completed** | In-Memory LRU 5/min auf Auth-Endpoints |
+| 5.0.7 | Collection Access Control verschärfen | Claude | **completed** | Events/Shopping owner-only, Templates auth-required, Media auth+MIME |
+| 5.0.8 | Server Actions: Zod + Auth + Authorization | Claude | **completed** | src/lib/schemas.ts, owner-checks |
+| 5.0.9 | requestPasswordReset generisch | Claude | **completed** | kein User-Enumeration |
 
 **Dependencies:** 3.2 (Dashboard)
 **Output:** App ist installierbar, funktioniert offline
