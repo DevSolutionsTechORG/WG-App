@@ -76,13 +76,41 @@
 - ✅ Responsive Design (Mobile + Desktop)
 - ✅ Server Actions für Dashboard-Daten
 
+### Phase 4 – PWA ✅ COMPLETED
+
+| Task | Status | Fertig |
+|------|--------|--------|
+| 4.1 PWA-Konfiguration | **Completed** | 2026-05-08 | Vollständige Icon-Sets, Manifest erweitert, Layout-Metadata für iOS/Android |
+
+#### Features in 4.1:
+- ✅ Icon-Set: 192/512 (any + maskable), apple-touch-icon-180
+- ✅ Manifest: `id`, `scope`, `lang`, `orientation`, `categories`, alle Icon-Varianten
+- ✅ Layout-Metadata: `manifest`, `appleWebApp`, `icons`, `viewport`, `themeColor`
+- ✅ Service Worker via next-pwa (war bereits vorhanden)
+
+### Phase 5 – Security Hardening ✅ COMPLETED
+
+| Task | Status | Fertig |
+|------|--------|--------|
+| 5.0 Security Hardening | **Completed** | 2026-05-08 | Vor-Deployment Härtung |
+
+#### Features in 5.0:
+- ✅ Boot-Validierung: `PAYLOAD_SECRET` (≥32 Zeichen) und `DATABASE_URL` Pflicht
+- ✅ AutoLogin nur in Dev mit explizit gesetzten Env-Vars (keine Default-Credentials mehr)
+- ✅ Brute-Force-Schutz: `maxLoginAttempts: 5`, `lockTime: 10min`
+- ✅ Auth-Cookies: `sameSite: Strict`, `secure` in Prod
+- ✅ Security-Header in `next.config.ts`: CSP (App + Admin separat), HSTS, X-Frame-Options DENY, X-Content-Type-Options, Referrer-Policy, Permissions-Policy
+- ✅ `poweredByHeader: false`
+- ✅ Rate-Limiting via `src/middleware.ts` (5 req/min pro IP) auf `/api/users/login`, `forgot-password`, `reset-password`
+- ✅ Collection-Access tightened: Events/ShoppingItems update/delete nur Owner/Admin; TaskTemplates/CleaningTaskOptions read auth-required; Media-Mutations auth-required (mit MIME-Filter)
+- ✅ Server Actions: Zod-Validierung am Eingang (`src/lib/schemas.ts`), explizite Owner-Checks in `updateEvent`/`deleteEvent`/`deleteShoppingItem`
+- ✅ `requestPasswordReset` antwortet generisch (kein User-Enumeration)
+
 ### Kommende Phasen
 
 | Phase | Status |
 |-------|--------|
-| 3 – Extended Features (Kalender, Dashboard) | 🔄 IN PROGRESS |
-| 4 – PWA | Pending |
-| 5 – Launch | Pending |
+| 5.1 – Deployment (Railway, SSL, Backups) | Pending |
 
 ---
 
@@ -243,6 +271,18 @@ UPSTASH_REDIS_REST_TOKEN=
 ---
 
 ## Changelog
+
+### 2026-05-08
+- **Phase 4 (PWA) COMPLETED:** Icons (192/512 any+maskable, apple-touch-180), Manifest erweitert, Layout-Metadata + viewport
+- **Phase 5 Security Hardening COMPLETED:**
+  - Secret/DB-URL Boot-Validierung
+  - AutoLogin restriktiver
+  - Brute-Force-Schutz, Strict cookies, forgotPassword expiration
+  - Security-Header (CSP, HSTS, X-Frame-Options, etc.) in `next.config.ts`
+  - Rate-Limit-Middleware für Auth-Endpoints
+  - Collection-Access-Control verschärft (Events/Shopping owner-only, Task* auth-required, Media auth + MIME-Filter)
+  - Zod-Validierung in Server Actions, explizite Owner-Checks
+  - Generische `requestPasswordReset`-Antwort (verhindert User-Enumeration)
 
 ### 2026-05-06 (Nachmittag)
 - **Task 2.2 COMPLETED:** Einkaufsliste implementiert
