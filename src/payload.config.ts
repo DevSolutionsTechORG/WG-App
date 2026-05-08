@@ -16,19 +16,37 @@ import sharp from 'sharp'
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
+const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build'
+
+const payloadSecret = process.env.PAYLOAD_SECRET
+if (!isBuildPhase && (!payloadSecret || payloadSecret.length < 32)) {
+  throw new Error(
+    'PAYLOAD_SECRET must be set and at least 32 characters long. Generate one with: openssl rand -hex 32',
+  )
+}
+
+const databaseUrl = process.env.DATABASE_URL
+if (!isBuildPhase && !databaseUrl) {
+  throw new Error('DATABASE_URL must be set.')
+}
+
+const autoLoginEnabled =
+  process.env.NODE_ENV === 'development' &&
+  !!process.env.AUTOLOGIN_EMAIL &&
+  !!process.env.AUTOLOGIN_PASSWORD
+
 export default buildConfig({
   admin: {
     user: Users.slug,
     importMap: {
       baseDir: path.resolve(dirname),
     },
-    autoLogin:
-      process.env.NODE_ENV === 'development'
-        ? {
-            email: process.env.AUTOLOGIN_EMAIL || 'test@example.com',
-            password: process.env.AUTOLOGIN_PASSWORD || 'test',
-          }
-        : false,
+    autoLogin: autoLoginEnabled
+      ? {
+          email: process.env.AUTOLOGIN_EMAIL!,
+          password: process.env.AUTOLOGIN_PASSWORD!,
+        }
+      : false,
   },
   collections: [
     Users,
@@ -41,12 +59,12 @@ export default buildConfig({
     Events,
   ],
   editor: lexicalEditor(),
-  secret: process.env.PAYLOAD_SECRET || '',
+  secret: payloadSecret ?? '',
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
   db: mongooseAdapter({
-    url: process.env.DATABASE_URL || '',
+    url: databaseUrl ?? '',
   }),
   sharp,
   plugins: [],
