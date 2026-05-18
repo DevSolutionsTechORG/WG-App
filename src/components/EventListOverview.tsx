@@ -8,12 +8,13 @@ import { useCallback, useState } from 'react'
 import Link from 'next/link'
 import { de } from 'date-fns/locale/de'
 
-type EventType = 'wg-meeting' | 'party' | 'cleaning' | 'other'
+type EventType = 'wg-meeting' | 'party' | 'cleaning' | 'waste-collection' | 'other'
 
 const eventTypeColors: Record<EventType, string> = {
   'wg-meeting': '#3b82f6',
   party: '#8b5cf6',
   cleaning: '#10b981',
+  'waste-collection': '#f59e0b',
   other: '#6b7280',
 }
 
@@ -21,6 +22,7 @@ const eventTypeLabels: Record<EventType, string> = {
   'wg-meeting': 'WG-Treffen',
   party: 'Party',
   cleaning: 'Reinigung',
+  'waste-collection': 'Abfallentsorgung',
   other: 'Sonstiges',
 }
 
@@ -34,6 +36,8 @@ interface CalendarEvent {
     description?: string
     location?: string
     eventType: EventType
+    createdById?: string
+    createdByName?: string
   }
 }
 
@@ -48,6 +52,9 @@ interface EventListOverviewProps {
   titleAsLink?: boolean
   onEventClick?: (event: CalendarEvent) => void
   enableModal?: boolean
+  filterByMonth?: boolean
+  currentUserId?: string
+  isAdmin?: boolean
 }
 
 interface FormData {
@@ -81,6 +88,9 @@ export function EventListOverview({
   titleAsLink = false,
   onEventClick,
   enableModal = false,
+  filterByMonth = true,
+  currentUserId,
+  isAdmin = false,
 }: EventListOverviewProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
@@ -89,10 +99,12 @@ export function EventListOverview({
     return makeDefaultForm(now, new Date(now.getTime() + 60 * 60 * 1000))
   })
 
-  // Nur Events des aktuellen Monats, chronologisch sortiert
-  const currentMonthEvents = events
-    .filter((e) => isSameMonth(e.start, currentDate))
-    .sort((a, b) => a.start.getTime() - b.start.getTime())
+  const canEdit = (event: CalendarEvent) =>
+    isAdmin || (!!currentUserId && event.resource?.createdById === currentUserId)
+
+  const visibleEvents = (
+    filterByMonth ? events.filter((e) => isSameMonth(e.start, currentDate)) : events
+  ).sort((a, b) => a.start.getTime() - b.start.getTime())
 
   const updateForm = useCallback(
     (patch: Partial<FormData>) => setFormData((prev) => ({ ...prev, ...patch })),
@@ -202,7 +214,7 @@ export function EventListOverview({
                 onClick={onNavigateToday}
                 className="px-2 py-1 text-xs rounded hover:bg-muted text-muted-foreground"
               >
-                Heute
+                {format(currentDate, 'MMMM yyyy', { locale: de })}
               </button>
             )}
             {onNavigateNext && (
@@ -218,13 +230,11 @@ export function EventListOverview({
         )}
       </div>
 
-      {currentMonthEvents.length === 0 ? (
-        <p className="text-muted-foreground text-sm py-4 text-center">
-          Keine Termine in diesem Monat
-        </p>
+      {visibleEvents.length === 0 ? (
+        <p className="text-muted-foreground text-sm py-4 text-center">Keine Termine</p>
       ) : (
         <div className="space-y-2">
-          {currentMonthEvents.map((event) => {
+          {visibleEvents.map((event) => {
             const color = eventTypeColors[event.resource?.eventType ?? 'other']
             const label = eventTypeLabels[event.resource?.eventType ?? 'other']
             return (
@@ -262,6 +272,11 @@ export function EventListOverview({
                       {event.resource.location}
                     </div>
                   )}
+                  {event.resource?.createdByName && (
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      von {event.resource.createdByName}
+                    </div>
+                  )}
                 </div>
               </button>
             )
@@ -277,9 +292,20 @@ export function EventListOverview({
         >
           <div className="bg-background rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 space-y-4">
-              <h2 className="text-xl font-semibold">
-                {selectedEvent ? 'Termin bearbeiten' : 'Neuer Termin'}
-              </h2>
+              <div className="flex items-start justify-between">
+                <h2 className="text-xl font-semibold">
+                  {selectedEvent
+                    ? canEdit(selectedEvent)
+                      ? 'Termin bearbeiten'
+                      : 'Termin'
+                    : 'Neuer Termin'}
+                </h2>
+                {selectedEvent?.resource?.createdByName && (
+                  <span className="text-xs text-muted-foreground mt-1">
+                    von {selectedEvent.resource.createdByName}
+                  </span>
+                )}
+              </div>
 
               <div>
                 <label className="block text-sm font-medium mb-1">Titel *</label>
@@ -287,7 +313,8 @@ export function EventListOverview({
                   type="text"
                   value={formData.title}
                   onChange={(e) => updateForm({ title: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-md"
+                  disabled={!!(selectedEvent && !canEdit(selectedEvent))}
+                  className="w-full px-3 py-2 border rounded-md disabled:bg-muted disabled:cursor-not-allowed"
                   autoFocus
                 />
               </div>
@@ -297,11 +324,13 @@ export function EventListOverview({
                 <select
                   value={formData.eventType}
                   onChange={(e) => updateForm({ eventType: e.target.value as EventType })}
-                  className="w-full px-3 py-2 border rounded-md"
+                  disabled={!!(selectedEvent && !canEdit(selectedEvent))}
+                  className="w-full px-3 py-2 border rounded-md disabled:bg-muted disabled:cursor-not-allowed"
                 >
                   <option value="wg-meeting">WG-Treffen</option>
                   <option value="party">Party</option>
                   <option value="cleaning">Reinigung</option>
+                  <option value="waste-collection">Abfallentsorgung</option>
                   <option value="other">Sonstiges</option>
                 </select>
               </div>
@@ -312,14 +341,14 @@ export function EventListOverview({
                   type="date"
                   value={formData.startDate}
                   min={new Date().toISOString().slice(0, 10)}
+                  disabled={!!(selectedEvent && !canEdit(selectedEvent))}
                   onChange={(e) => {
                     updateForm({ startDate: e.target.value })
-                    // If not multi-day, update end date to match start date
                     if (!formData.multiDay) {
                       updateForm({ endDate: e.target.value })
                     }
                   }}
-                  className="w-full px-3 py-2 border rounded-md"
+                  className="w-full px-3 py-2 border rounded-md disabled:bg-muted disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -332,9 +361,11 @@ export function EventListOverview({
                   value={formData.endDate}
                   min={formData.startDate}
                   onChange={(e) => updateForm({ endDate: e.target.value })}
-                  disabled={!formData.multiDay}
+                  disabled={!formData.multiDay || !!(selectedEvent && !canEdit(selectedEvent))}
                   className={`w-full px-3 py-2 border rounded-md ${
-                    !formData.multiDay ? 'bg-muted cursor-not-allowed' : ''
+                    !formData.multiDay || (selectedEvent && !canEdit(selectedEvent))
+                      ? 'bg-muted cursor-not-allowed'
+                      : ''
                   }`}
                 />
               </div>
@@ -344,10 +375,10 @@ export function EventListOverview({
                   type="checkbox"
                   id="multiDay"
                   checked={formData.multiDay}
+                  disabled={!!(selectedEvent && !canEdit(selectedEvent))}
                   onChange={(e) => {
                     const isMultiDay = e.target.checked
                     updateForm({ multiDay: isMultiDay })
-                    // If not multi-day, set end date to start date
                     if (!isMultiDay && formData.startDate) {
                       updateForm({ endDate: formData.startDate })
                     }
@@ -369,7 +400,8 @@ export function EventListOverview({
                 <textarea
                   value={formData.description}
                   onChange={(e) => updateForm({ description: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-md"
+                  disabled={!!(selectedEvent && !canEdit(selectedEvent))}
+                  className="w-full px-3 py-2 border rounded-md disabled:bg-muted disabled:cursor-not-allowed"
                   rows={3}
                 />
               </div>
@@ -380,9 +412,16 @@ export function EventListOverview({
                   type="text"
                   value={formData.location}
                   onChange={(e) => updateForm({ location: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-md"
+                  disabled={!!(selectedEvent && !canEdit(selectedEvent))}
+                  className="w-full px-3 py-2 border rounded-md disabled:bg-muted disabled:cursor-not-allowed"
                 />
               </div>
+
+              {selectedEvent && !canEdit(selectedEvent) && (
+                <p className="text-xs text-muted-foreground">
+                  Nur der Ersteller kann diesen Termin bearbeiten.
+                </p>
+              )}
 
               <div className="flex justify-between gap-2">
                 <div className="flex gap-2">
@@ -390,9 +429,9 @@ export function EventListOverview({
                     onClick={closeModal}
                     className="px-4 py-2 text-sm border rounded-md hover:bg-muted"
                   >
-                    Abbrechen
+                    {selectedEvent && !canEdit(selectedEvent) ? 'Schließen' : 'Abbrechen'}
                   </button>
-                  {selectedEvent && (
+                  {selectedEvent && canEdit(selectedEvent) && (
                     <button
                       onClick={handleDelete}
                       className="px-4 py-2 text-sm bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90"
@@ -401,19 +440,21 @@ export function EventListOverview({
                     </button>
                   )}
                 </div>
-                <button
-                  onClick={handleSave}
-                  disabled={
-                    !formData.title ||
-                    !formData.startDate ||
-                    (formData.multiDay &&
-                      (!formData.endDate ||
-                        new Date(formData.endDate) < new Date(formData.startDate)))
-                  }
-                  className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50"
-                >
-                  {selectedEvent ? 'Speichern' : 'Erstellen'}
-                </button>
+                {(!selectedEvent || canEdit(selectedEvent)) && (
+                  <button
+                    onClick={handleSave}
+                    disabled={
+                      !formData.title ||
+                      !formData.startDate ||
+                      (formData.multiDay &&
+                        (!formData.endDate ||
+                          new Date(formData.endDate) < new Date(formData.startDate)))
+                    }
+                    className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50"
+                  >
+                    {selectedEvent ? 'Speichern' : 'Erstellen'}
+                  </button>
+                )}
               </div>
             </div>
           </div>
