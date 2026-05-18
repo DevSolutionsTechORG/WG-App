@@ -6,6 +6,7 @@ import config from '@/payload.config'
 import { headers as getHeaders } from 'next/headers.js'
 import { getPayload } from 'payload'
 import { createEventSchema, idSchema, updateEventSchema } from '@/lib/schemas'
+import type { ParsedIcsEvent } from '@/lib/calendar/ics-parser'
 
 /**
  * Get events for a date range
@@ -161,6 +162,66 @@ export async function deleteEvent(eventId: unknown) {
   } catch (error) {
     console.error('Delete event error:', error)
     return { success: false, message: 'Fehler beim Löschen' }
+  }
+}
+
+export async function importIcsEvents(
+  events: ParsedIcsEvent[],
+): Promise<{ success: boolean; imported: number; errors: number; message: string }> {
+  if (!Array.isArray(events) || events.length === 0) {
+    return { success: false, imported: 0, errors: 0, message: 'Keine Events übergeben' }
+  }
+
+  try {
+    const headers = await getHeaders()
+    const payloadConfig = await config
+    const payload = await getPayload({ config: payloadConfig })
+
+    const { user: currentUser } = await payload.auth({ headers })
+    if (!currentUser) {
+      return { success: false, imported: 0, errors: 0, message: 'Not authenticated' }
+    }
+
+    let imported = 0
+    let errors = 0
+
+    for (const ev of events) {
+      const parsed = createEventSchema.safeParse({
+        title: ev.title,
+        startDate: ev.startDate,
+        endDate: ev.endDate,
+        allDay: ev.allDay,
+        description: ev.description,
+        location: ev.location,
+        eventType: 'waste-collection',
+      })
+      if (!parsed.success) {
+        errors++
+        continue
+      }
+      try {
+        await payload.create({
+          collection: 'events',
+          data: { ...parsed.data, createdBy: currentUser.id } as never,
+        })
+        imported++
+      } catch {
+        errors++
+      }
+    }
+
+    return {
+      success: true,
+      imported,
+      errors,
+      message:
+        errors === 0
+          ? `${imported} Termine importiert`
+          : `${imported} Termine importiert, ${errors} Fehler`,
+    }
+  } catch (error) {
+    console.error('Import ICS error:', error)
+    return { success: false, imported: 0, errors: 0, message: 'Import fehlgeschlagen' }
   }
 }
 
