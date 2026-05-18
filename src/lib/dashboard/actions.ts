@@ -47,15 +47,14 @@ export async function getDashboardData() {
       limit: 10,
     })
 
-    // Get events for current month
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59)
+    // Get events for the next 14 days
+    const twoWeeksLater = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000)
     const eventsResult = await payload.find({
       collection: 'events',
       where: {
         and: [
-          { startDate: { greater_than_equal: monthStart.toISOString() } },
-          { startDate: { less_than_equal: monthEnd.toISOString() } },
+          { startDate: { greater_than_equal: now.toISOString() } },
+          { startDate: { less_than_equal: twoWeeksLater.toISOString() } },
         ],
       },
       sort: 'startDate',
