@@ -3,8 +3,9 @@
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 
 import { Calendar, SlotInfo, Views, dateFnsLocalizer } from 'react-big-calendar'
-import { Calendar as CalendarIcon, Plus, Trash2 } from 'lucide-react'
-import { createEvent, deleteEvent, getEvents, updateEvent } from '@/lib/calendar/actions'
+import { Calendar as CalendarIcon, Plus, Trash2, Upload } from 'lucide-react'
+import { createEvent, deleteEvent, getEvents, importIcsEvents, updateEvent } from '@/lib/calendar/actions'
+import { parseIcs } from '@/lib/calendar/ics-parser'
 import {
   format,
   getDay,
@@ -18,6 +19,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { EventListOverview } from '@/components/EventListOverview'
+import { useAuth } from '@/hooks/useAuth'
 import type { View } from 'react-big-calendar'
 import { de } from 'date-fns/locale/de'
 
@@ -32,12 +34,13 @@ const localizer = dateFnsLocalizer({
   locales,
 })
 
-type EventType = 'wg-meeting' | 'party' | 'cleaning' | 'other'
+type EventType = 'wg-meeting' | 'party' | 'cleaning' | 'waste-collection' | 'other'
 
 const eventTypeColors: Record<EventType, string> = {
   'wg-meeting': '#3b82f6',
   party: '#8b5cf6',
   cleaning: '#10b981',
+  'waste-collection': '#f59e0b',
   other: '#6b7280',
 }
 
@@ -45,6 +48,7 @@ const eventTypeLabels: Record<EventType, string> = {
   'wg-meeting': 'WG-Treffen',
   party: 'Party',
   cleaning: 'Reinigung',
+  'waste-collection': 'Abfallentsorgung',
   other: 'Sonstiges',
 }
 
@@ -58,6 +62,8 @@ interface CalendarEvent {
     description?: string
     location?: string
     eventType: EventType
+    createdById?: string
+    createdByName?: string
   }
 }
 
@@ -82,6 +88,7 @@ const makeDefaultForm = (start: Date, end: Date): FormData => ({
 })
 
 export default function CalendarPage() {
+  const { user } = useAuth()
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
@@ -92,6 +99,8 @@ export default function CalendarPage() {
     const now = new Date()
     return makeDefaultForm(now, new Date(now.getTime() + 60 * 60 * 1000))
   })
+
+  const icsInputRef = useRef<HTMLInputElement>(null)
 
   // Ref für den Touch-Handler — hält immer die aktuellen events + currentDate
   // ohne den useCallback neu erstellen zu müssen
@@ -121,6 +130,10 @@ export default function CalendarPage() {
             description: event.description ?? undefined,
             location: event.location ?? undefined,
             eventType: (event.eventType as EventType) ?? 'other',
+            createdById:
+              typeof event.createdBy === 'string' ? event.createdBy : event.createdBy?.id,
+            createdByName:
+              typeof event.createdBy === 'string' ? '' : ((event.createdBy as any)?.name ?? ''),
           },
         })),
       )
@@ -135,6 +148,25 @@ export default function CalendarPage() {
   useEffect(() => {
     console.log('events: ', events)
   }, [events])
+
+  const handleIcsImport = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (!file) return
+      e.target.value = ''
+      const text = await file.text()
+      const parsed = parseIcs(text)
+      if (parsed.length === 0) {
+        alert('Keine Termine in der ICS-Datei gefunden.')
+        return
+      }
+      if (!confirm(`${parsed.length} Termine gefunden. Importieren?`)) return
+      const result = await importIcsEvents(parsed)
+      alert(result.message)
+      if (result.imported > 0) loadEvents()
+    },
+    [loadEvents],
+  )
 
   const updateForm = useCallback(
     (patch: Partial<FormData>) => setFormData((prev) => ({ ...prev, ...patch })),
@@ -340,13 +372,33 @@ export default function CalendarPage() {
             <CalendarIcon className="w-6 h-6" />
             Kalender
           </h1>
-          <button
-            onClick={openCreateModal}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-          >
-            <Plus className="w-4 h-4" />
-            Termin erstellen
-          </button>
+          <div className="flex items-center gap-2">
+            {user?.role === 'admin' && (
+              <>
+                <input
+                  ref={icsInputRef}
+                  type="file"
+                  accept=".ics"
+                  className="hidden"
+                  onChange={handleIcsImport}
+                />
+                <button
+                  onClick={() => icsInputRef.current?.click()}
+                  className="flex items-center gap-2 px-4 py-2 border border-input bg-background text-foreground rounded-md hover:bg-accent"
+                >
+                  <Upload className="w-4 h-4" />
+                  ICS importieren
+                </button>
+              </>
+            )}
+            <button
+              onClick={openCreateModal}
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+            >
+              <Plus className="w-4 h-4" />
+              Termin erstellen
+            </button>
+          </div>
         </div>
 
         {/* Kalender-Wrapper: onTouchEnd fängt alle Touch-Events direkt ab */}
@@ -394,161 +446,189 @@ export default function CalendarPage() {
             onNavigateToday={() => setCurrentDate(new Date())}
             onNavigateNext={() => setCurrentDate((d) => new Date(getYear(d), getMonth(d) + 1, 1))}
             enableModal={true}
+            currentUserId={user?.id}
+            isAdmin={user?.role === 'admin'}
           />
         </div>
       </div>
 
       {/* Modal */}
-      {isModalOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-          onClick={(e) => e.target === e.currentTarget && closeModal()}
-        >
-          <div className="bg-background rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 space-y-4">
-              <h2 className="text-xl font-semibold">
-                {selectedEvent ? 'Termin bearbeiten' : 'Neuer Termin'}
-              </h2>
+      {isModalOpen && (() => {
+        const canEdit =
+          !selectedEvent ||
+          user?.role === 'admin' ||
+          selectedEvent.resource?.createdById === user?.id
+        return (
+          <div
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={(e) => e.target === e.currentTarget && closeModal()}
+          >
+            <div className="bg-background rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6 space-y-4">
+                <div className="flex items-start justify-between">
+                  <h2 className="text-xl font-semibold">
+                    {selectedEvent ? (canEdit ? 'Termin bearbeiten' : 'Termin') : 'Neuer Termin'}
+                  </h2>
+                  {selectedEvent?.resource?.createdByName && (
+                    <span className="text-xs text-muted-foreground mt-1">
+                      von {selectedEvent.resource.createdByName}
+                    </span>
+                  )}
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">Titel *</label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => updateForm({ title: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-md"
-                  autoFocus
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Typ</label>
-                <select
-                  value={formData.eventType}
-                  onChange={(e) => updateForm({ eventType: e.target.value as EventType })}
-                  className="w-full px-3 py-2 border rounded-md"
-                >
-                  <option value="wg-meeting">WG-Treffen</option>
-                  <option value="party">Party</option>
-                  <option value="cleaning">Reinigung</option>
-                  <option value="other">Sonstiges</option>
-                </select>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="multiDay"
-                  checked={formData.multiDay}
-                  onChange={(e) => {
-                    const isMultiDay = e.target.checked
-                    updateForm({ multiDay: isMultiDay })
-                    // If not multi-day, set end date to start date
-                    if (!isMultiDay && formData.startDate) {
-                      updateForm({ endDate: formData.startDate })
-                    }
-                  }}
-                  className="rounded"
-                />
-                <label htmlFor="multiDay" className="text-sm">
-                  Mehrtägig
-                </label>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Start *</label>
+                  <label className="block text-sm font-medium mb-1">Titel *</label>
                   <input
-                    type="date"
-                    value={formData.startDate}
-                    min={new Date().toISOString().slice(0, 10)}
+                    type="text"
+                    value={formData.title}
+                    onChange={(e) => updateForm({ title: e.target.value })}
+                    disabled={!canEdit}
+                    className="w-full px-3 py-2 border rounded-md disabled:bg-muted disabled:cursor-not-allowed"
+                    autoFocus
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Typ</label>
+                  <select
+                    value={formData.eventType}
+                    onChange={(e) => updateForm({ eventType: e.target.value as EventType })}
+                    disabled={!canEdit}
+                    className="w-full px-3 py-2 border rounded-md disabled:bg-muted disabled:cursor-not-allowed"
+                  >
+                    <option value="wg-meeting">WG-Treffen</option>
+                    <option value="party">Party</option>
+                    <option value="cleaning">Reinigung</option>
+                    <option value="waste-collection">Abfallentsorgung</option>
+                    <option value="other">Sonstiges</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="multiDay"
+                    checked={formData.multiDay}
+                    disabled={!canEdit}
                     onChange={(e) => {
-                      updateForm({ startDate: e.target.value })
-                      // If not multi-day, update end date to match start date
-                      if (!formData.multiDay) {
-                        updateForm({ endDate: e.target.value })
+                      const isMultiDay = e.target.checked
+                      updateForm({ multiDay: isMultiDay })
+                      if (!isMultiDay && formData.startDate) {
+                        updateForm({ endDate: formData.startDate })
                       }
                     }}
-                    className="w-full px-3 py-2 border rounded-md"
+                    className="rounded"
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Ende {formData.multiDay ? '*' : ''}
+                  <label htmlFor="multiDay" className="text-sm">
+                    Mehrtägig
                   </label>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Start *</label>
+                    <input
+                      type="date"
+                      value={formData.startDate}
+                      min={new Date().toISOString().slice(0, 10)}
+                      disabled={!canEdit}
+                      onChange={(e) => {
+                        updateForm({ startDate: e.target.value })
+                        if (!formData.multiDay) {
+                          updateForm({ endDate: e.target.value })
+                        }
+                      }}
+                      className="w-full px-3 py-2 border rounded-md disabled:bg-muted disabled:cursor-not-allowed"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Ende {formData.multiDay ? '*' : ''}
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.endDate}
+                      min={formData.startDate}
+                      onChange={(e) => updateForm({ endDate: e.target.value })}
+                      disabled={!formData.multiDay || !canEdit}
+                      className={`w-full px-3 py-2 border rounded-md ${
+                        !formData.multiDay || !canEdit ? 'bg-muted cursor-not-allowed' : ''
+                      }`}
+                    />
+                  </div>
+                </div>
+                {formData.multiDay && new Date(formData.endDate) < new Date(formData.startDate) && (
+                  <div className="text-sm text-destructive">
+                    Das Enddatum muss nach dem Startdatum liegen
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Ort</label>
                   <input
-                    type="date"
-                    value={formData.endDate}
-                    min={formData.startDate}
-                    onChange={(e) => updateForm({ endDate: e.target.value })}
-                    disabled={!formData.multiDay}
-                    className={`w-full px-3 py-2 border rounded-md ${
-                      !formData.multiDay ? 'bg-muted cursor-not-allowed' : ''
-                    }`}
+                    type="text"
+                    value={formData.location}
+                    onChange={(e) => updateForm({ location: e.target.value })}
+                    disabled={!canEdit}
+                    placeholder="z.B. Wohnzimmer"
+                    className="w-full px-3 py-2 border rounded-md disabled:bg-muted disabled:cursor-not-allowed"
                   />
                 </div>
-              </div>
-              {formData.multiDay && new Date(formData.endDate) < new Date(formData.startDate) && (
-                <div className="text-sm text-destructive">
-                  Das Enddatum muss nach dem Startdatum liegen
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Beschreibung</label>
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => updateForm({ description: e.target.value })}
+                    disabled={!canEdit}
+                    rows={3}
+                    className="w-full px-3 py-2 border rounded-md disabled:bg-muted disabled:cursor-not-allowed"
+                  />
                 </div>
-              )}
 
-              <div>
-                <label className="block text-sm font-medium mb-1">Ort</label>
-                <input
-                  type="text"
-                  value={formData.location}
-                  onChange={(e) => updateForm({ location: e.target.value })}
-                  placeholder="z.B. Wohnzimmer"
-                  className="w-full px-3 py-2 border rounded-md"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Beschreibung</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => updateForm({ description: e.target.value })}
-                  rows={3}
-                  className="w-full px-3 py-2 border rounded-md"
-                />
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <button
-                  onClick={handleSave}
-                  disabled={
-                    !formData.title ||
-                    !formData.startDate ||
-                    (formData.multiDay &&
-                      (!formData.endDate ||
-                        new Date(formData.endDate) < new Date(formData.startDate)))
-                  }
-                  className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50"
-                >
-                  {selectedEvent ? 'Speichern' : 'Erstellen'}
-                </button>
-                {selectedEvent && (
-                  <button
-                    onClick={handleDelete}
-                    className="flex items-center gap-1 px-4 py-2 bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Löschen
-                  </button>
+                {selectedEvent && !canEdit && (
+                  <p className="text-xs text-muted-foreground">
+                    Nur der Ersteller kann diesen Termin bearbeiten.
+                  </p>
                 )}
-                <button
-                  onClick={closeModal}
-                  className="px-4 py-2 text-muted-foreground hover:text-foreground"
-                >
-                  Abbrechen
-                </button>
+
+                <div className="flex gap-2 pt-2">
+                  {canEdit && (
+                    <button
+                      onClick={handleSave}
+                      disabled={
+                        !formData.title ||
+                        !formData.startDate ||
+                        (formData.multiDay &&
+                          (!formData.endDate ||
+                            new Date(formData.endDate) < new Date(formData.startDate)))
+                      }
+                      className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50"
+                    >
+                      {selectedEvent ? 'Speichern' : 'Erstellen'}
+                    </button>
+                  )}
+                  {selectedEvent && canEdit && (
+                    <button
+                      onClick={handleDelete}
+                      className="flex items-center gap-1 px-4 py-2 bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Löschen
+                    </button>
+                  )}
+                  <button
+                    onClick={closeModal}
+                    className="px-4 py-2 text-muted-foreground hover:text-foreground"
+                  >
+                    {selectedEvent && !canEdit ? 'Schließen' : 'Abbrechen'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
     </div>
   )
 }
