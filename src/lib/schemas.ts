@@ -9,7 +9,7 @@ export const createEventSchema = z.object({
   allDay: z.boolean().optional(),
   description: z.string().max(2000).optional(),
   location: z.string().max(200).optional(),
-  eventType: z.enum(['wg-meeting', 'party', 'cleaning', 'other']).optional(),
+  eventType: z.enum(['wg-meeting', 'party', 'cleaning', 'waste-collection', 'other']).optional(),
 })
 
 export const updateEventSchema = createEventSchema.partial()
