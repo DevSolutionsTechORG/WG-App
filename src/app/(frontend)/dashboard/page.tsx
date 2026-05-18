@@ -228,12 +228,19 @@ export default function DashboardPage() {
                 description: event.description || undefined,
                 location: event.location || undefined,
                 eventType: (event.eventType as any) || 'other',
+                createdById:
+                  typeof event.createdBy === 'string' ? event.createdBy : event.createdBy?.id,
+                createdByName:
+                  typeof event.createdBy === 'string' ? '' : (event.createdBy?.name ?? ''),
               },
             }))}
             currentDate={new Date()}
-            title="Events diesen Monat"
+            title="Nächste 2 Wochen"
             showNavigation={false}
             titleAsLink={true}
+            filterByMonth={false}
+            currentUserId={data.currentUser.id}
+            isAdmin={data.currentUser.role === 'admin'}
             enableModal={true}
           />
         </div>
