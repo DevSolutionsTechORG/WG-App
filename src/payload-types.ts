@@ -300,7 +300,7 @@ export interface Event {
   endDate?: string | null;
   allDay?: boolean | null;
   location?: string | null;
-  eventType?: ('wg-meeting' | 'party' | 'cleaning' | 'other') | null;
+  eventType?: ('wg-meeting' | 'party' | 'cleaning' | 'waste-collection' | 'other') | null;
   createdBy: string | User;
   updatedAt: string;
   createdAt: string;

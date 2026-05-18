@@ -72,6 +72,7 @@ export const Events: CollectionConfig = {
         { label: 'WG-Treffen', value: 'wg-meeting' },
         { label: 'Party', value: 'party' },
         { label: 'Reinigung', value: 'cleaning' },
+        { label: 'Abfallentsorgung', value: 'waste-collection' },
         { label: 'Sonstiges', value: 'other' },
       ],
       defaultValue: 'other',
