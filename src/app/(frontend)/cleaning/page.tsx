@@ -1,7 +1,8 @@
 import { AlertTriangle, CheckCircle2, Circle, User } from 'lucide-react'
-import { getOverdueAssignments, getWeeklyAssignments } from '@/lib/cleaning/actions'
+import { getCompletedFreeTaskHistory, getOverdueAssignments, getWeeklyAssignments } from '@/lib/cleaning/actions'
 
 import { CompleteTaskButton } from '@/components/cleaning/CompleteTaskButton'
+import { CompletedFreeTasksSection } from '@/components/cleaning/CompletedFreeTasksSection'
 import config from '@/payload.config'
 import { headers as getHeaders } from 'next/headers.js'
 import { getPayload } from 'payload'
@@ -19,6 +20,7 @@ export default async function CleaningPage() {
 
   const { assignments, currentWeek, currentYear, totalUsers } = await getWeeklyAssignments()
   const { overdueAssignments, totalOverdue } = await getOverdueAssignments()
+  const { history: freeTaskHistory } = await getCompletedFreeTaskHistory()
 
   return (
     <div className="min-h-screen bg-background">
@@ -150,6 +152,8 @@ export default async function CleaningPage() {
             )}
           </div>
         )}
+
+        <CompletedFreeTasksSection tasks={freeTaskHistory ?? []} />
       </div>
     </div>
   )

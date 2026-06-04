@@ -2,6 +2,17 @@
 
 import type { TaskAssignment, TaskCompletionHistory, TaskTemplate, User } from '@/payload-types'
 
+export interface EnrichedFreeTask {
+  id: string
+  template: TaskTemplate
+  completedBy: User
+  completedAt: string
+  weekNumber: number
+  year: number
+  notes?: string | null
+  selectedOption?: string | null
+}
+
 import config from '@/payload.config'
 import { headers as getHeaders } from 'next/headers.js'
 import { getPayload } from 'payload'
@@ -383,6 +394,73 @@ export async function getCleaningTaskOptions() {
   } catch (error) {
     console.error('Get options error:', error)
     return { success: false, options: [] }
+  }
+}
+
+/**
+ * Get completion history for all "Freie Aufgaben" (isCustom templates).
+ * Two-step: find custom template IDs, then query history for those templates.
+ * Sorted newest to oldest by completedAt.
+ */
+export async function getCompletedFreeTaskHistory(): Promise<{
+  success: boolean
+  message?: string
+  history: EnrichedFreeTask[]
+}> {
+  try {
+    const headers = await getHeaders()
+    const payloadConfig = await config
+    const payload = await getPayload({ config: payloadConfig })
+
+    const { user: currentUser } = await payload.auth({ headers })
+    if (!currentUser) {
+      return { success: false, message: 'Not authenticated', history: [] }
+    }
+
+    // Step 1: Find all templates where isCustom is true
+    const templatesResult = await payload.find({
+      collection: 'task-templates',
+      where: { isCustom: { equals: true } },
+      limit: 100,
+    })
+    const customTemplates = templatesResult.docs as TaskTemplate[]
+
+    if (customTemplates.length === 0) {
+      return { success: true, history: [] }
+    }
+
+    const customTemplateIds = customTemplates.map((t) => t.id)
+
+    // Step 2: Find completion history entries for those template IDs
+    const historyResult = await payload.find({
+      collection: 'task-completion-history',
+      where: { template: { in: customTemplateIds } },
+      sort: '-completedAt',
+      depth: 2,
+      limit: 100,
+    })
+
+    const history = historyResult.docs
+      .filter(
+        (entry) =>
+          typeof entry.template === 'object' &&
+          typeof entry.completedBy === 'object',
+      )
+      .map((entry) => ({
+        id: entry.id,
+        template: entry.template as TaskTemplate,
+        completedBy: entry.completedBy as User,
+        completedAt: entry.completedAt,
+        weekNumber: entry.weekNumber,
+        year: entry.year,
+        notes: entry.notes,
+        selectedOption: entry.selectedOption,
+      }))
+
+    return { success: true, history }
+  } catch (error) {
+    console.error('Get completed free task history error:', error)
+    return { success: false, message: 'Failed to load history', history: [] }
   }
 }
 
