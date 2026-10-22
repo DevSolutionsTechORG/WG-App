@@ -60,19 +60,26 @@ export const TaskTemplates: CollectionConfig = {
     {
       name: 'isCustom',
       type: 'checkbox',
-      label: 'Custom-Task (Anderes)',
+      label: 'Freie Aufgabe (Auswahl beim Abhaken)',
       admin: {
         description:
-          'User wählt beim Abhaken aus der Liste "Optionen (Andere Aufgabe)" statt einfach nur abzuhaken.',
+          'User wählt beim Abhaken genau eine Option aus der Auswahlliste unten.',
       },
     },
     {
-      name: 'requiresOptions',
-      type: 'checkbox',
-      label: 'Pflegeoptionen erforderlich',
+      name: 'freeTaskOptions',
+      type: 'array',
+      label: 'Auswahlliste',
+      labels: { singular: 'Option', plural: 'Optionen' },
       admin: {
-        description: '(Derzeit ungenutzt — die Optionsliste gilt automatisch für alle Custom-Tasks.)',
+        condition: (data) => !!data?.isCustom,
+        description:
+          'Aus dieser Liste wählt man beim Abhaken genau eine Aufgabe. Reihenfolge per Drag & Drop.',
       },
+      fields: [
+        { name: 'title', type: 'text', required: true, label: 'Titel' },
+        { name: 'description', type: 'textarea', label: 'Was gehört dazu?' },
+      ],
     },
   ],
 }

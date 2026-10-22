@@ -17,6 +17,10 @@ export function isDueInWeek(
   return frequency === 'biweekly' ? weekNumber % 2 === 0 : true
 }
 
+/** Aufgaben mit fester Nutzerliste (z.B. Badezimmer) bekommen eine eigene, permanente Karte. */
+export const isRestricted = (template: Pick<TaskTemplate, 'assignedUsers'>) =>
+  (template.assignedUsers?.length ?? 0) > 0
+
 /** Berechtigte Nutzer: explizite Liste falls gesetzt, sonst alle. Reihenfolge folgt `users`, damit die Rotation stabil bleibt. */
 export function eligibleUsers(
   template: Pick<TaskTemplate, 'assignedUsers'>,

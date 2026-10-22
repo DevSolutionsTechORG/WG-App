@@ -1,10 +1,12 @@
 import { AlertTriangle, CheckCircle2, Circle, User } from 'lucide-react'
 import {
-  getCleaningTaskOptions,
   getCompletedFreeTaskHistory,
+  getFreeTaskOptionLists,
   getOverdueAssignments,
+  getRestrictedTaskCards,
   getWeeklyAssignments,
 } from '@/lib/cleaning/actions'
+import { isRestricted } from '@/lib/cleaning/rotation'
 
 import { CompleteTaskButton } from '@/components/cleaning/CompleteTaskButton'
 import { CompletedFreeTasksSection } from '@/components/cleaning/CompletedFreeTasksSection'
@@ -23,10 +25,23 @@ export default async function CleaningPage() {
     redirect('/login')
   }
 
-  const { assignments, currentWeek, currentYear, totalUsers } = await getWeeklyAssignments()
-  const { overdueAssignments, totalOverdue } = await getOverdueAssignments()
+  const {
+    assignments: allAssignments,
+    currentWeek,
+    currentYear,
+    totalUsers,
+  } = await getWeeklyAssignments()
+  const { overdueAssignments: allOverdue = [] } = await getOverdueAssignments()
+  const { cards } = await getRestrictedTaskCards()
+
+  // Aufgaben mit fester Nutzerliste laufen ausschließlich über ihre eigene Karte.
+  const assignments = allAssignments.filter(({ template }) => !isRestricted(template))
+  const overdueAssignments = allOverdue.filter(({ template }) => !isRestricted(template))
+  const totalOverdue = overdueAssignments.length
   const { history: freeTaskHistory } = await getCompletedFreeTaskHistory()
-  const { options: freeTaskOptions } = await getCleaningTaskOptions()
+  const { lists: freeTaskLists } = await getFreeTaskOptionLists()
+  const optionsFor = (templateId: string) =>
+    freeTaskLists.find((list) => list.templateId === templateId)?.options ?? []
 
   return (
     <div className="min-h-screen bg-background">
@@ -37,6 +52,77 @@ export default async function CleaningPage() {
             KW {currentWeek} / {currentYear}
           </div>
         </div>
+
+        {/* Permanente Karten (z.B. Badezimmer): blau = du bist dran, rot = überfällig */}
+        {cards.length > 0 && (
+          <div className="space-y-4 mb-8">
+            {cards.map(({ template, current, overdue, next }) => {
+              const currentOpen = current && !current.isCompleted ? current : undefined
+              const tone = overdue
+                ? 'bg-red-50 border-red-200'
+                : currentOpen?.isMine
+                  ? 'bg-blue-50 border-blue-300'
+                  : 'bg-card'
+              const mine = [overdue, currentOpen].filter((a) => a?.isMine)
+
+              return (
+                <div
+                  key={template.id}
+                  className={`${tone} rounded-lg shadow border p-4 flex items-start justify-between gap-4`}
+                >
+                  <div className="flex items-start gap-4 flex-1 min-w-0">
+                    {overdue ? (
+                      <AlertTriangle className="w-6 h-6 text-red-500 mt-0.5 shrink-0" />
+                    ) : current?.isCompleted ? (
+                      <CheckCircle2 className="w-6 h-6 text-green-500 mt-0.5 shrink-0" />
+                    ) : (
+                      <Circle
+                        className={`w-6 h-6 mt-0.5 shrink-0 ${currentOpen?.isMine ? 'text-blue-500' : 'text-muted-foreground'}`}
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-foreground">{template.title}</h3>
+                      {template.description && (
+                        <p className="text-sm text-muted-foreground mt-1">{template.description}</p>
+                      )}
+                      {overdue && (
+                        <p className="text-sm text-red-600 mt-2 font-medium">
+                          Überfällig seit KW {overdue.weekNumber}/{overdue.year}:{' '}
+                          {overdue.isMine ? 'du' : overdue.assignedUser?.name}
+                        </p>
+                      )}
+                      {currentOpen && (
+                        <p
+                          className={`text-sm mt-2 font-medium ${currentOpen.isMine ? 'text-blue-700' : 'text-muted-foreground'}`}
+                        >
+                          {currentOpen.isMine
+                            ? `Diese Woche (KW ${currentOpen.weekNumber}) bist du dran`
+                            : `Diese Woche (KW ${currentOpen.weekNumber}): ${currentOpen.assignedUser?.name}`}
+                        </p>
+                      )}
+                      {current?.isCompleted && (
+                        <p className="text-sm text-green-600 mt-2">
+                          KW {current.weekNumber} erledigt
+                        </p>
+                      )}
+                      {!currentOpen && next && (
+                        <p className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+                          <User className="w-4 h-4 shrink-0" />
+                          Nächster Termin: KW {next.weekNumber} –{' '}
+                          {next.user ? (next.user.id === user.id ? 'du' : next.user.name) : '—'}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {mine.map((a) => (
+                    <CompleteTaskButton key={a!.id} assignmentId={a!.id} />
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        )}
 
         {/* Overdue Assignments Section */}
         {(totalOverdue ?? 0) > 0 && (
@@ -82,7 +168,7 @@ export default async function CleaningPage() {
                       <CompleteTaskButton
                         assignmentId={assignment.id}
                         isCustom={!!template.isCustom}
-                        options={freeTaskOptions ?? []}
+                        options={optionsFor(template.id)}
                       />
                     )}
                   </div>
@@ -154,7 +240,7 @@ export default async function CleaningPage() {
                     <CompleteTaskButton
                       assignmentId={assignment.id}
                       isCustom={!!template.isCustom}
-                      options={freeTaskOptions ?? []}
+                      options={optionsFor(template.id)}
                     />
                   )}
                 </div>
@@ -162,6 +248,32 @@ export default async function CleaningPage() {
             )}
           </div>
         )}
+
+        {/* Legende: für alle einsehbar, nicht nur für wen die Freie Aufgabe gerade dran ist */}
+        {freeTaskLists
+          .filter((list) => list.options.length > 0)
+          .map((list) => (
+            <details key={list.templateId} className="mt-8 bg-card rounded-lg shadow border p-4">
+              <summary className="cursor-pointer font-medium text-foreground">
+                Was zählt als „{list.templateTitle}“? ({list.options.length} Optionen)
+              </summary>
+              <ul className="mt-3 space-y-3">
+                {list.options.map((option) => (
+                  <li key={option.id} className="text-sm">
+                    <span className="font-medium text-foreground">{option.title}</span>
+                    {option.lastDoneAt && (
+                      <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-800">
+                        kürzlich erledigt
+                      </span>
+                    )}
+                    {option.description && (
+                      <span className="block text-muted-foreground">{option.description}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ))}
 
         <CompletedFreeTasksSection tasks={freeTaskHistory ?? []} />
       </div>

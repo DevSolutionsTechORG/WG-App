@@ -24,7 +24,7 @@ if (existing.docs.length > 0) {
     data: {
       title: TITLE,
       description:
-        'Reinigen von Toilette, Pissuar, Dusche inkl. Duschrinne und Wischen der Ablage sowie des Mülleimer Deckels.',
+        'Toiletten, Ablage, Mülleimerdeckel, Dusche / Duschrinne reinigen',
       rotationGroup: nextGroup,
       frequency: 'biweekly',
     },

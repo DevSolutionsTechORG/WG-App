@@ -72,7 +72,6 @@ export interface Config {
     'task-templates': TaskTemplate;
     'task-assignments': TaskAssignment;
     'task-completion-history': TaskCompletionHistory;
-    'cleaning-task-options': CleaningTaskOption;
     'shopping-items': ShoppingItem;
     events: Event;
     'payload-kv': PayloadKv;
@@ -87,7 +86,6 @@ export interface Config {
     'task-templates': TaskTemplatesSelect<false> | TaskTemplatesSelect<true>;
     'task-assignments': TaskAssignmentsSelect<false> | TaskAssignmentsSelect<true>;
     'task-completion-history': TaskCompletionHistorySelect<false> | TaskCompletionHistorySelect<true>;
-    'cleaning-task-options': CleaningTaskOptionsSelect<false> | CleaningTaskOptionsSelect<true>;
     'shopping-items': ShoppingItemsSelect<false> | ShoppingItemsSelect<true>;
     events: EventsSelect<false> | EventsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
@@ -194,13 +192,19 @@ export interface TaskTemplate {
    */
   assignedUsers?: (string | User)[] | null;
   /**
-   * User wählt beim Abhaken aus der Liste "Optionen (Andere Aufgabe)" statt einfach nur abzuhaken.
+   * User wählt beim Abhaken genau eine Option aus der Auswahlliste unten.
    */
   isCustom?: boolean | null;
   /**
-   * (Derzeit ungenutzt — die Optionsliste gilt automatisch für alle Custom-Tasks.)
+   * Aus dieser Liste wählt man beim Abhaken genau eine Aufgabe. Reihenfolge per Drag & Drop.
    */
-  requiresOptions?: boolean | null;
+  freeTaskOptions?:
+    | {
+        title: string;
+        description?: string | null;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -246,24 +250,6 @@ export interface TaskCompletionHistory {
    */
   repeatedWithinTwoWeeks?: boolean | null;
   title?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * Auswahlliste, aus der Nutzer beim Abhaken der Aufgabe "Anderes" wählen. Hier Titel, Beschreibung, Aktiv-Status und Sortierreihenfolge pflegen.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "cleaning-task-options".
- */
-export interface CleaningTaskOption {
-  id: string;
-  /**
-   * z.B. "Fenster putzen", "Müll rausbringen"
-   */
-  title: string;
-  description?: string | null;
-  isActive?: boolean | null;
-  sortOrder?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -358,10 +344,6 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'task-completion-history';
         value: string | TaskCompletionHistory;
-      } | null)
-    | ({
-        relationTo: 'cleaning-task-options';
-        value: string | CleaningTaskOption;
       } | null)
     | ({
         relationTo: 'shopping-items';
@@ -467,7 +449,13 @@ export interface TaskTemplatesSelect<T extends boolean = true> {
   frequency?: T;
   assignedUsers?: T;
   isCustom?: T;
-  requiresOptions?: T;
+  freeTaskOptions?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }
@@ -502,18 +490,6 @@ export interface TaskCompletionHistorySelect<T extends boolean = true> {
   selectedOption?: T;
   repeatedWithinTwoWeeks?: T;
   title?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "cleaning-task-options_select".
- */
-export interface CleaningTaskOptionsSelect<T extends boolean = true> {
-  title?: T;
-  description?: T;
-  isActive?: T;
-  sortOrder?: T;
   updatedAt?: T;
   createdAt?: T;
 }

@@ -18,8 +18,9 @@ interface CompleteTaskButtonProps {
   onComplete?: () => void
 }
 
-function daysAgo(dateString: string): number {
-  return Math.max(0, Math.round((Date.now() - new Date(dateString).getTime()) / 86400000))
+function ago(dateString: string): string {
+  const days = Math.max(0, Math.round((Date.now() - new Date(dateString).getTime()) / 86400000))
+  return days === 0 ? 'heute' : days === 1 ? 'gestern' : `vor ${days} Tagen`
 }
 
 export function CompleteTaskButton({
@@ -69,7 +70,7 @@ export function CompleteTaskButton({
         {listOpen &&
           (options.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Noch keine Aufgaben hinterlegt — Admin muss sie im Panel anlegen.
+              Noch keine Optionen hinterlegt — Admin pflegt sie im Template „Freie Aufgabe“.
             </p>
           ) : (
             <div className="max-h-72 overflow-y-auto space-y-1 border rounded-md p-2">
@@ -95,7 +96,7 @@ export function CompleteTaskButton({
                     )}
                     {option.lastDoneAt && (
                       <span className="inline-block mt-1 px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-800">
-                        zuletzt vor {daysAgo(option.lastDoneAt)} Tag(en)
+                        zuletzt {ago(option.lastDoneAt)}
                       </span>
                     )}
                   </span>
@@ -108,8 +109,8 @@ export function CompleteTaskButton({
           <div className="flex items-start gap-2 p-2 rounded-md bg-yellow-50 border border-yellow-200 text-sm text-yellow-800">
             <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
             <span>
-              Diese Aufgabe wurde vor {daysAgo(selected.lastDoneAt)} Tag(en) schon erledigt.
-              Trotzdem eintragen? Wird in der Historie als Wiederholung vermerkt.
+              Diese Aufgabe wurde {ago(selected.lastDoneAt)} schon erledigt. Trotzdem eintragen?
+              Wird in der Historie als Wiederholung vermerkt.
             </span>
           </div>
         )}

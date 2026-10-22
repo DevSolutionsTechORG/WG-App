@@ -1,4 +1,3 @@
-import { CleaningTaskOptions } from './collections/CleaningTaskOptions'
 import { Events } from './collections/Events'
 import { Media } from './collections/Media'
 import { ShoppingItems } from './collections/ShoppingItems'
@@ -59,7 +58,6 @@ export default buildConfig({
     TaskTemplates,
     TaskAssignments,
     TaskCompletionHistory,
-    CleaningTaskOptions,
     ShoppingItems,
     Events,
   ],

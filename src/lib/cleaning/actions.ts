@@ -18,19 +18,14 @@ import config from '@/payload.config'
 import { headers as getHeaders } from 'next/headers.js'
 import { getPayload } from 'payload'
 import { completeTaskSchema } from '@/lib/schemas'
-import { eligibleUsers, isDueInWeek, rotationIndex, toId } from '@/lib/cleaning/rotation'
+import {
+  assigneeFor,
+  ensureWeekAssignments,
+  generateAssignmentsForWeek,
+  getISOWeek,
+} from '@/lib/cleaning/generate'
+import { isDueInWeek, isRestricted, toId } from '@/lib/cleaning/rotation'
 import { TWO_WEEKS_MS, withRecency } from '@/lib/cleaning/recency'
-
-/**
- * Get ISO week number for a date
- */
-function getISOWeek(date: Date): number {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
-  const dayNum = d.getUTCDay() || 7
-  d.setUTCDate(d.getUTCDate() + 4 - dayNum)
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
-  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7)
-}
 
 /**
  * Get current week's cleaning assignments from TaskAssignments collection
@@ -48,48 +43,11 @@ export async function getWeeklyAssignments() {
       return { success: false, message: 'Not authenticated', assignments: [] }
     }
 
-    // Calculate current week
-    const now = new Date()
-    const currentWeek = getISOWeek(now)
-    const currentYear = now.getFullYear()
-
-    // Get all active users
-    const usersResult = await payload.find({
-      collection: 'users',
-      where: {
-        role: { in: ['member', 'admin'] },
-      },
-      limit: 100,
-    })
-    const users = usersResult.docs as User[]
+    const { currentWeek, currentYear, users, assignments } = await ensureWeekAssignments(payload)
 
     if (users.length === 0) {
       return { success: false, message: 'No users found', assignments: [] }
     }
-
-    // Check if assignments exist for current week
-    const existingAssignmentsResult = await payload.find({
-      collection: 'task-assignments',
-      where: {
-        weekNumber: { equals: currentWeek },
-        year: { equals: currentYear },
-      },
-      depth: 2,
-      limit: 100,
-    })
-
-    let assignments: TaskAssignment[] = existingAssignmentsResult.docs as TaskAssignment[]
-
-    // Per-Template-Nachzug: erzeugt nur, was für diese Woche noch fehlt
-    // (neues Template, oder biweekly-Aufgabe in einer Woche mit bestehenden Wochenaufgaben).
-    const created = await generateAssignmentsForWeek(
-      currentWeek,
-      currentYear,
-      users,
-      payload,
-      assignments,
-    )
-    if (created.length > 0) assignments = [...assignments, ...created]
 
     // Enrich assignments with completion history
     const enrichedAssignments = await Promise.all(
@@ -133,6 +91,85 @@ export async function getWeeklyAssignments() {
   } catch (error) {
     console.error('Get assignments error:', error)
     return { success: false, message: 'Failed to load assignments', assignments: [] }
+  }
+}
+
+/**
+ * Permanente Karten für Aufgaben mit fester Nutzerliste, nur für berechtigte Nutzer.
+ * Zustand: diese Woche fällig (`current`), überfällig aus Vorwochen (`overdue`),
+ * sonst nächster Termin (`next`).
+ */
+export async function getRestrictedTaskCards() {
+  try {
+    const headers = await getHeaders()
+    const payload = await getPayload({ config: await config })
+    const { user: currentUser } = await payload.auth({ headers })
+    if (!currentUser) return { success: false, cards: [] }
+
+    const { currentWeek, currentYear, users, assignments } = await ensureWeekAssignments(payload)
+    const templates = (await payload.find({ collection: 'task-templates', limit: 100 }))
+      .docs as TaskTemplate[]
+
+    const cards = await Promise.all(
+      templates
+        .filter(
+          (t) => isRestricted(t) && t.assignedUsers!.some((u) => toId(u) === currentUser.id),
+        )
+        .map(async (template) => {
+          const current = assignments.find((a) => toId(a.template) === template.id)
+
+          const overdueResult = await payload.find({
+            collection: 'task-assignments',
+            where: {
+              and: [
+                { template: { equals: template.id } },
+                { status: { equals: 'pending' } },
+                {
+                  or: [
+                    { year: { less_than: currentYear } },
+                    {
+                      and: [
+                        { year: { equals: currentYear } },
+                        { weekNumber: { less_than: currentWeek } },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+            sort: 'dueDate',
+            depth: 1,
+            limit: 1,
+          })
+          const overdue = overdueResult.docs[0] as TaskAssignment | undefined
+
+          let next: { weekNumber: number; user: User | null } | null = null
+          for (let k = 1; k <= 8 && !next; k++) {
+            const date = new Date(Date.now() + k * 7 * 86400000)
+            const weekNumber = getISOWeek(date)
+            if (isDueInWeek(template.frequency, weekNumber)) {
+              next = { weekNumber, user: assigneeFor(template, templates, users, weekNumber) }
+            }
+          }
+
+          const toView = (a: TaskAssignment | undefined) =>
+            a && {
+              id: a.id,
+              weekNumber: a.weekNumber,
+              year: a.year,
+              isCompleted: a.status === 'completed',
+              assignedUser: a.assignedTo as User,
+              isMine: toId(a.assignedTo) === currentUser.id,
+            }
+
+          return { template, current: toView(current), overdue: toView(overdue), next }
+        }),
+    )
+
+    return { success: true, cards }
+  } catch (error) {
+    console.error('Get restricted task cards error:', error)
+    return { success: false, cards: [] }
   }
 }
 
@@ -211,106 +248,6 @@ export async function getOverdueAssignments() {
   }
 }
 
-/**
- * Create the assignments that are missing for a given week.
- * Idempotent per template: templates already present in `existing` are skipped.
- * Returns only the newly created assignments.
- */
-async function generateAssignmentsForWeek(
-  weekNumber: number,
-  year: number,
-  users: User[],
-  payload: Awaited<ReturnType<typeof getPayload>>,
-  existing: TaskAssignment[] = [],
-): Promise<TaskAssignment[]> {
-  // Get all task templates
-  const templatesResult = await payload.find({
-    collection: 'task-templates',
-    limit: 100,
-  })
-  const templates = templatesResult.docs as TaskTemplate[]
-
-  if (templates.length === 0 || users.length === 0) {
-    return []
-  }
-
-  const alreadyAssigned = new Set(existing.map((a) => toId(a.template)))
-  const created: TaskAssignment[] = []
-
-  // Group templates by rotationGroup
-  const templatesByGroup: Record<number, TaskTemplate[]> = {}
-  for (const template of templates) {
-    const group = template.rotationGroup || 0
-    if (!templatesByGroup[group]) {
-      templatesByGroup[group] = []
-    }
-    templatesByGroup[group].push(template)
-  }
-
-  // Generate assignments for each rotation group
-  for (const [group, groupTemplates] of Object.entries(templatesByGroup)) {
-    const groupNum = parseInt(group)
-
-    for (let i = 0; i < groupTemplates.length; i++) {
-      const template = groupTemplates[i]
-
-      // i bleibt an die VOLLE Gruppenliste gebunden — Überspringen darf den
-      // Rotationsindex der anderen Templates niemals verschieben.
-      if (alreadyAssigned.has(template.id)) continue
-      if (!isDueInWeek(template.frequency, weekNumber)) continue
-
-      const eligible = eligibleUsers(template, users)
-      const userIndex = rotationIndex({
-        weekNumber,
-        rotationGroup: groupNum,
-        indexInGroup: i,
-        frequency: template.frequency,
-        eligibleCount: eligible.length,
-      })
-      if (userIndex < 0) continue // Nutzerliste gesetzt, aber kein aktiver Nutzer passt
-
-      try {
-        const assignment = await payload.create({
-          collection: 'task-assignments',
-          data: {
-            template: template.id,
-            assignedTo: eligible[userIndex].id,
-            weekNumber,
-            year,
-            status: 'pending',
-            dueDate: getFridayOfWeek(year, weekNumber).toISOString(),
-          },
-          overrideAccess: true,
-        })
-        created.push(assignment as TaskAssignment)
-      } catch (error) {
-        // Der beforeChange-Hook der Collection wirft bei Duplikaten
-        // (TaskAssignments.ts). Nicht fatal — darf nie die ganze Seite killen.
-        // ponytail: find-then-create ist nicht atomar; Mongo-Unique-Index auf
-        // (template, weekNumber, year), falls je echte Duplikate auftauchen.
-        console.error(`Assignment skipped for template ${template.id}:`, error)
-      }
-    }
-  }
-
-  return created
-}
-
-/**
- * Get Friday of a specific ISO week
- */
-function getFridayOfWeek(year: number, week: number): Date {
-  // ISO week starts on Monday, so we calculate from there
-  const jan4 = new Date(year, 0, 4)
-  const jan4Day = jan4.getDay() || 7 // 1 = Monday, 7 = Sunday
-  const firstMonday = new Date(year, 0, 4 - jan4Day + 1)
-
-  // Add (week - 1) weeks + 4 days to get to Friday
-  const friday = new Date(firstMonday)
-  friday.setDate(firstMonday.getDate() + (week - 1) * 7 + 4)
-
-  return friday
-}
 
 /**
  * Mark a task assignment as completed
@@ -368,18 +305,12 @@ export async function completeTask(assignmentId: unknown, notes?: unknown, selec
         return { success: false, message: 'Bitte eine Aufgabe auswählen' }
       }
 
-      // Trust boundary: der Client schickt nur einen Titel-String, nie eine
-      // Referenz. Gegen die aktiven Optionen prüfen, statt ihn ungeprüft
-      // in die Historie zu schreiben.
-      const validOption = await payload.find({
-        collection: 'cleaning-task-options',
-        where: {
-          title: { equals: parsed.data.selectedOption },
-          isActive: { equals: true },
-        },
-        limit: 1,
-      })
-      if (validOption.docs.length === 0) {
+      // Trust boundary: der Client schickt nur einen Titel-String. Gegen die
+      // Auswahlliste des Templates prüfen, statt ihn ungeprüft zu speichern.
+      const isValidOption = (template.freeTaskOptions ?? []).some(
+        (option) => option.title === parsed.data.selectedOption,
+      )
+      if (!isValidOption) {
         return { success: false, message: 'Unbekannte Aufgabe' }
       }
 
@@ -431,45 +362,60 @@ export async function completeTask(assignmentId: unknown, notes?: unknown, selec
 }
 
 /**
- * Get cleaning task options (for "Anderes" task), each annotated with
- * `lastDoneAt` if it was completed within the last 2 weeks.
+ * Auswahllisten aller Freien Aufgaben (isCustom-Templates), jede Option
+ * angereichert mit `lastDoneAt`, falls sie in den letzten 2 Wochen erledigt wurde.
  */
-export async function getCleaningTaskOptions() {
+export async function getFreeTaskOptionLists() {
   try {
-    const payloadConfig = await config
-    const payload = await getPayload({ config: payloadConfig })
+    const headers = await getHeaders()
+    const payload = await getPayload({ config: await config })
+    const { user } = await payload.auth({ headers })
+    if (!user) return { success: false, lists: [] }
 
-    const optionsResult = await payload.find({
-      collection: 'cleaning-task-options',
-      where: {
-        isActive: { equals: true },
-      },
-      sort: 'sortOrder',
-      limit: 100,
-    })
+    const templates = (
+      await payload.find({
+        collection: 'task-templates',
+        where: { isCustom: { equals: true } },
+        limit: 20,
+      })
+    ).docs as TaskTemplate[]
 
-    if (optionsResult.docs.length === 0) {
-      return { success: true, options: [] }
-    }
+    const titles = templates.flatMap((t) => (t.freeTaskOptions ?? []).map((o) => o.title))
+    const recent =
+      titles.length === 0
+        ? []
+        : (
+            await payload.find({
+              collection: 'task-completion-history',
+              where: {
+                selectedOption: { in: titles },
+                completedAt: {
+                  greater_than_equal: new Date(Date.now() - TWO_WEEKS_MS).toISOString(),
+                },
+              },
+              sort: '-completedAt',
+              limit: 200,
+            })
+          ).docs
 
-    const cutoff = new Date(Date.now() - TWO_WEEKS_MS).toISOString()
-    const recent = await payload.find({
-      collection: 'task-completion-history',
-      where: {
-        selectedOption: { in: optionsResult.docs.map((o) => o.title) },
-        completedAt: { greater_than_equal: cutoff },
-      },
-      sort: '-completedAt',
-      limit: 200,
-    })
+    const lists = templates.map((template) => ({
+      templateId: template.id,
+      templateTitle: template.title,
+      options: withRecency(
+        (template.freeTaskOptions ?? []).map((o) => ({
+          id: o.id ?? o.title,
+          title: o.title,
+          description: o.description ?? null,
+        })),
+        recent,
+        new Date(),
+      ),
+    }))
 
-    return {
-      success: true,
-      options: withRecency(optionsResult.docs, recent.docs, new Date()),
-    }
+    return { success: true, lists }
   } catch (error) {
-    console.error('Get options error:', error)
-    return { success: false, options: [] }
+    console.error('Get free task options error:', error)
+    return { success: false, lists: [] }
   }
 }
 
