@@ -190,11 +190,15 @@ export interface TaskTemplate {
   rotationGroup: number;
   frequency: 'weekly' | 'biweekly' | 'monthly';
   /**
-   * User kann Notizen hinzufügen
+   * Leer = alle Mitglieder rotieren. Sonst rotiert die Aufgabe nur unter den hier gewählten Nutzern.
+   */
+  assignedUsers?: (string | User)[] | null;
+  /**
+   * User wählt beim Abhaken aus der Liste "Optionen (Andere Aufgabe)" statt einfach nur abzuhaken.
    */
   isCustom?: boolean | null;
   /**
-   * User kann aus Beispiel-Optionen wählen
+   * (Derzeit ungenutzt — die Optionsliste gilt automatisch für alle Custom-Tasks.)
    */
   requiresOptions?: boolean | null;
   updatedAt: string;
@@ -237,11 +241,17 @@ export interface TaskCompletionHistory {
    * Falls aus Pflegeoptionen gewählt
    */
   selectedOption?: string | null;
+  /**
+   * Automatisch gesetzt: Aufgabe war in den letzten 14 Tagen schon erledigt
+   */
+  repeatedWithinTwoWeeks?: boolean | null;
   title?: string | null;
   updatedAt: string;
   createdAt: string;
 }
 /**
+ * Auswahlliste, aus der Nutzer beim Abhaken der Aufgabe "Anderes" wählen. Hier Titel, Beschreibung, Aktiv-Status und Sortierreihenfolge pflegen.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "cleaning-task-options".
  */
@@ -455,6 +465,7 @@ export interface TaskTemplatesSelect<T extends boolean = true> {
   description?: T;
   rotationGroup?: T;
   frequency?: T;
+  assignedUsers?: T;
   isCustom?: T;
   requiresOptions?: T;
   updatedAt?: T;
@@ -489,6 +500,7 @@ export interface TaskCompletionHistorySelect<T extends boolean = true> {
   year?: T;
   notes?: T;
   selectedOption?: T;
+  repeatedWithinTwoWeeks?: T;
   title?: T;
   updatedAt?: T;
   createdAt?: T;

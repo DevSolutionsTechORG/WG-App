@@ -5,6 +5,7 @@ import { getDashboardData, getDashboardStats } from '@/lib/dashboard/actions'
 import { useEffect, useState } from 'react'
 
 import { EventListOverview } from '@/components/EventListOverview'
+import { FeatureHintCard } from '@/components/dashboard/FeatureHintCard'
 import Link from 'next/link'
 import type { ShoppingItem } from '@/payload-types'
 import { de } from 'date-fns/locale'
@@ -105,6 +106,8 @@ export default function DashboardPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <FeatureHintCard />
+
         {/* User Tasks Section */}
         <div className="bg-card rounded-lg shadow border p-6 mb-8">
           <h2 className="text-lg font-semibold text-foreground mb-4">Meine Aufgaben</h2>

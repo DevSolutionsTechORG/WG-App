@@ -3,9 +3,15 @@ import { authenticated } from '@/access/authenticated'
 
 export const CleaningTaskOptions: CollectionConfig = {
   slug: 'cleaning-task-options',
+  labels: {
+    singular: 'Option (Andere Aufgabe)',
+    plural: 'Optionen (Andere Aufgabe)',
+  },
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['title', 'isActive', 'sortOrder'],
+    description:
+      'Auswahlliste, aus der Nutzer beim Abhaken der Aufgabe "Anderes" wählen. Hier Titel, Beschreibung, Aktiv-Status und Sortierreihenfolge pflegen.',
   },
   access: {
     read: authenticated,

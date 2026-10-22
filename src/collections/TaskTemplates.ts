@@ -47,11 +47,23 @@ export const TaskTemplates: CollectionConfig = {
       defaultValue: 'weekly',
     },
     {
+      name: 'assignedUsers',
+      type: 'relationship',
+      relationTo: 'users',
+      hasMany: true,
+      label: 'Nur für diese Nutzer',
+      admin: {
+        description:
+          'Leer = alle Mitglieder rotieren. Sonst rotiert die Aufgabe nur unter den hier gewählten Nutzern.',
+      },
+    },
+    {
       name: 'isCustom',
       type: 'checkbox',
       label: 'Custom-Task (Anderes)',
       admin: {
-        description: 'User kann Notizen hinzufügen',
+        description:
+          'User wählt beim Abhaken aus der Liste "Optionen (Andere Aufgabe)" statt einfach nur abzuhaken.',
       },
     },
     {
@@ -59,7 +71,7 @@ export const TaskTemplates: CollectionConfig = {
       type: 'checkbox',
       label: 'Pflegeoptionen erforderlich',
       admin: {
-        description: 'User kann aus Beispiel-Optionen wählen',
+        description: '(Derzeit ungenutzt — die Optionsliste gilt automatisch für alle Custom-Tasks.)',
       },
     },
   ],

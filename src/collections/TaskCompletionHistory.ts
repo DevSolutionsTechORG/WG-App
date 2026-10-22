@@ -76,6 +76,16 @@ export const TaskCompletionHistory: CollectionConfig = {
       },
     },
     {
+      name: 'repeatedWithinTwoWeeks',
+      type: 'checkbox',
+      label: 'Wiederholung innerhalb 2 Wochen',
+      defaultValue: false,
+      admin: {
+        readOnly: true,
+        description: 'Automatisch gesetzt: Aufgabe war in den letzten 14 Tagen schon erledigt',
+      },
+    },
+    {
       name: 'title',
       type: 'text',
       label: 'Titel (Auto-Generated)',

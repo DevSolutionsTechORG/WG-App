@@ -31,13 +31,23 @@ export function CompletedFreeTasksSection({ tasks }: Props) {
             <div className="flex items-start gap-4">
               <CheckCircle2 className="w-6 h-6 text-green-500 mt-0.5 shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-foreground">
-                  {task.template.title} – KW {task.weekNumber} – {task.year}
+                <p className="font-medium text-foreground flex items-center gap-2 flex-wrap">
+                  <span>
+                    {task.template.title} – KW {task.weekNumber} – {task.year}
+                  </span>
+                  {task.repeatedWithinTwoWeeks && (
+                    <span className="px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-800">
+                      Wiederholung
+                    </span>
+                  )}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
                   {task.completedBy.name || task.completedBy.email}
-                  {task.notes && (
-                    <span className="text-foreground"> – &ldquo;{task.notes}&rdquo;</span>
+                  {(task.selectedOption || task.notes) && (
+                    <span className="text-foreground">
+                      {' '}
+                      – &ldquo;{task.selectedOption || task.notes}&rdquo;
+                    </span>
                   )}
                 </p>
               </div>

@@ -1,5 +1,10 @@
 import { AlertTriangle, CheckCircle2, Circle, User } from 'lucide-react'
-import { getCompletedFreeTaskHistory, getOverdueAssignments, getWeeklyAssignments } from '@/lib/cleaning/actions'
+import {
+  getCleaningTaskOptions,
+  getCompletedFreeTaskHistory,
+  getOverdueAssignments,
+  getWeeklyAssignments,
+} from '@/lib/cleaning/actions'
 
 import { CompleteTaskButton } from '@/components/cleaning/CompleteTaskButton'
 import { CompletedFreeTasksSection } from '@/components/cleaning/CompletedFreeTasksSection'
@@ -21,6 +26,7 @@ export default async function CleaningPage() {
   const { assignments, currentWeek, currentYear, totalUsers } = await getWeeklyAssignments()
   const { overdueAssignments, totalOverdue } = await getOverdueAssignments()
   const { history: freeTaskHistory } = await getCompletedFreeTaskHistory()
+  const { options: freeTaskOptions } = await getCleaningTaskOptions()
 
   return (
     <div className="min-h-screen bg-background">
@@ -76,6 +82,7 @@ export default async function CleaningPage() {
                       <CompleteTaskButton
                         assignmentId={assignment.id}
                         isCustom={!!template.isCustom}
+                        options={freeTaskOptions ?? []}
                       />
                     )}
                   </div>
@@ -107,6 +114,7 @@ export default async function CleaningPage() {
                 isCompleted,
                 completedBy,
                 historyNotes,
+                selectedOption,
                 isAssignedToCurrentUser,
               }) => (
                 <div
@@ -135,7 +143,8 @@ export default async function CleaningPage() {
                       {isCompleted && completedBy && (
                         <p className="text-sm text-green-600 mt-1">
                           Erledigt von {completedBy.name || completedBy.email}
-                          {historyNotes && `: "${historyNotes}"`}
+                          {(selectedOption || historyNotes) &&
+                            `: "${selectedOption || historyNotes}"`}
                         </p>
                       )}
                     </div>
@@ -145,6 +154,7 @@ export default async function CleaningPage() {
                     <CompleteTaskButton
                       assignmentId={assignment.id}
                       isCustom={!!template.isCustom}
+                      options={freeTaskOptions ?? []}
                     />
                   )}
                 </div>
