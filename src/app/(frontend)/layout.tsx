@@ -2,6 +2,7 @@ import './styles.css'
 
 import type { Metadata, Viewport } from 'next'
 
+import { AppLifecycle } from '@/components/AppLifecycle'
 import { Navigation } from '@/components/navigation'
 import React from 'react'
 
@@ -40,7 +41,8 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
   return (
     <html lang="de">
       <body className="bg-background text-foreground">
-        <div className="pb-16 md:pb-0">
+        <AppLifecycle />
+        <div className="pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
           <Navigation />
           <main>{children}</main>
         </div>

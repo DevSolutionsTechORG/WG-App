@@ -3,9 +3,11 @@
 import { Plus } from 'lucide-react'
 import { createShoppingItem } from '@/lib/shopping/actions'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 export function AddItemForm() {
   const [isOpen, setIsOpen] = useState(false)
+  const router = useRouter()
   const [isPending, setIsPending] = useState(false)
   const [formData, setFormData] = useState<{
     title: string
@@ -47,7 +49,7 @@ export function AddItemForm() {
           unit: '',
         })
         setIsOpen(false)
-        window.location.reload()
+        router.refresh()
       } else {
         alert(result.message)
       }

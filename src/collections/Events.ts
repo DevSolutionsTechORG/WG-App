@@ -84,12 +84,19 @@ export const Events: CollectionConfig = {
       required: true,
       label: 'Erstellt von',
     },
+    {
+      name: 'reminderSentAt',
+      type: 'date',
+      label: 'Push-Erinnerung gesendet',
+      admin: { readOnly: true, position: 'sidebar' },
+    },
   ],
   hooks: {
     beforeChange: [
       async ({ data, req, operation }) => {
-        if (operation === 'create' && !data.createdBy) {
-          data.createdBy = req.user?.id
+        // Nicht-Admins können per REST keinen fremden Ersteller setzen.
+        if (operation === 'create' && req.user && (req.user.role !== 'admin' || !data.createdBy)) {
+          data.createdBy = req.user.id
         }
         // If no endDate, set it to startDate
         if (!data.endDate && data.startDate) {

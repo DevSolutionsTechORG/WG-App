@@ -1,10 +1,11 @@
 'use server'
 
-import type { Event, ShoppingItem, TaskAssignment, User } from '@/payload-types'
+import type { Event, ShoppingItem, TaskAssignment } from '@/payload-types'
 
 import config from '@/payload.config'
 import { headers as getHeaders } from 'next/headers.js'
 import { getPayload } from 'payload'
+import { getISOWeek } from '@/lib/cleaning/generate'
 
 /**
  * Get dashboard overview data
@@ -22,9 +23,7 @@ export async function getDashboardData() {
 
     // Get current week number and year
     const now = new Date()
-    const weekNumber = Math.ceil(
-      (now.getTime() - new Date(now.getFullYear(), 0, 1).getTime()) / (7 * 24 * 60 * 60 * 1000),
-    )
+    const weekNumber = getISOWeek(now)
     const year = now.getFullYear()
 
     // Get user's current cleaning tasks (all tasks, not just this week)
@@ -53,7 +52,9 @@ export async function getDashboardData() {
       collection: 'events',
       where: {
         and: [
-          { startDate: { greater_than_equal: now.toISOString() } },
+          // Ganztägige Termine liegen auf Mitternacht UTC ihres Tages — ab Tagesbeginn
+          // filtern, sonst fehlen die heutigen Termine.
+          { startDate: { greater_than_equal: `${now.toISOString().slice(0, 10)}T00:00:00.000Z` } },
           { startDate: { less_than_equal: twoWeeksLater.toISOString() } },
         ],
       },
@@ -93,96 +94,5 @@ export async function getDashboardData() {
   } catch (error) {
     console.error('Dashboard data error:', error)
     return { success: false, message: 'Failed to load dashboard data' }
-  }
-}
-
-/**
- * Get quick stats for dashboard
- */
-export async function getDashboardStats() {
-  try {
-    const headers = await getHeaders()
-    const payloadConfig = await config
-    const payload = await getPayload({ config: payloadConfig })
-
-    const { user: currentUser } = await payload.auth({ headers })
-    if (!currentUser) {
-      return { success: false, message: 'Not authenticated' }
-    }
-
-    // Get counts in parallel
-    const [shoppingResult, eventsResult, myTasksResult, allUsersResult] = await Promise.all([
-      // Open shopping items
-      payload.find({
-        collection: 'shopping-items',
-        where: { status: { equals: 'open' } },
-        limit: 1,
-      }),
-      // Events this month
-      payload.find({
-        collection: 'events',
-        where: {
-          and: [
-            {
-              startDate: {
-                greater_than_equal: new Date(
-                  new Date().getFullYear(),
-                  new Date().getMonth(),
-                  1,
-                ).toISOString(),
-              },
-            },
-            {
-              startDate: {
-                less_than_equal: new Date(
-                  new Date().getFullYear(),
-                  new Date().getMonth() + 1,
-                  0,
-                ).toISOString(),
-              },
-            },
-          ],
-        },
-        limit: 1,
-      }),
-      // My tasks this week
-      payload.find({
-        collection: 'task-assignments',
-        where: {
-          and: [
-            { assignedTo: { equals: currentUser.id } },
-            {
-              weekNumber: {
-                equals: Math.ceil(
-                  (new Date().getTime() - new Date(new Date().getFullYear(), 0, 1).getTime()) /
-                    (7 * 24 * 60 * 60 * 1000),
-                ),
-              },
-            },
-            { year: { equals: new Date().getFullYear() } },
-            { status: { not_equals: 'completed' } },
-          ],
-        },
-        limit: 1,
-      }),
-      // Total users
-      payload.find({
-        collection: 'users',
-        limit: 1,
-      }),
-    ])
-
-    return {
-      success: true,
-      stats: {
-        openShoppingItems: shoppingResult.totalDocs,
-        eventsThisMonth: eventsResult.totalDocs,
-        myTasksThisWeek: myTasksResult.totalDocs,
-        totalUsers: allUsersResult.totalDocs,
-      },
-    }
-  } catch (error) {
-    console.error('Dashboard stats error:', error)
-    return { success: false, message: 'Failed to load dashboard stats' }
   }
 }

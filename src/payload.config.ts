@@ -1,5 +1,6 @@
 import { Events } from './collections/Events'
 import { Media } from './collections/Media'
+import { PushSubscriptions } from './collections/PushSubscriptions'
 import { ShoppingItems } from './collections/ShoppingItems'
 import { TaskAssignments } from './collections/TaskAssignments'
 import { TaskCompletionHistory } from './collections/TaskCompletionHistory'
@@ -60,8 +61,14 @@ export default buildConfig({
     TaskCompletionHistory,
     ShoppingItems,
     Events,
+    PushSubscriptions,
   ],
   editor: lexicalEditor(),
+  // GraphQL wird nicht genutzt — weniger Angriffsfläche.
+  graphQL: { disable: true },
+  // Optional: exakte Origin der App (z.B. https://wg.example.de, ohne Slash am Ende).
+  // Dann akzeptiert Payload das Login-Cookie nur noch von dieser Origin.
+  csrf: process.env.SERVER_URL ? [process.env.SERVER_URL] : [],
   secret: payloadSecret ?? '',
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),

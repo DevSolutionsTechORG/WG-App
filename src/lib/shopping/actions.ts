@@ -5,7 +5,7 @@ import type { ShoppingItem, User } from '@/payload-types'
 import config from '@/payload.config'
 import { headers as getHeaders } from 'next/headers.js'
 import { getPayload } from 'payload'
-import { createShoppingItemSchema, idSchema } from '@/lib/schemas'
+import { createShoppingItemSchema, idSchema, shoppingFilterSchema } from '@/lib/schemas'
 
 interface PayloadWhere {
   [key: string]: { equals: string } | PayloadWhere[] | undefined
@@ -17,7 +17,12 @@ interface PayloadWhere {
 /**
  * Get all shopping items
  */
-export async function getShoppingItems(category?: string, status: string = 'open') {
+export async function getShoppingItems(categoryInput?: unknown, statusInput?: unknown) {
+  const { category, status } = shoppingFilterSchema.parse({
+    category: categoryInput,
+    status: statusInput,
+  })
+
   try {
     const headers = await getHeaders()
     const payloadConfig = await config
@@ -34,7 +39,7 @@ export async function getShoppingItems(category?: string, status: string = 'open
       where.status = { equals: status }
     }
 
-    if (category && category !== 'all') {
+    if (category !== 'all') {
       where.category = { equals: category }
     }
 

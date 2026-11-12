@@ -20,27 +20,26 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
-    "@payloadcms/db-mongodb": "3.84.1",
-    "@payloadcms/next": "3.84.1",
-    "@payloadcms/richtext-lexical": "3.84.1",
-    "@payloadcms/ui": "3.84.1",
+    "@payloadcms/db-mongodb": "3.93.0",
+    "@payloadcms/next": "3.93.0",
+    "@payloadcms/richtext-lexical": "3.93.0",
+    "@payloadcms/ui": "3.93.0",
     "clsx": "^2.1.1",
     "cross-env": "^7.0.3",
     "date-fns": "^4.1.0",
     "dotenv": "16.4.7",
     "graphql": "^16.8.1",
     "lucide-react": "^0.487.0",
-    "next": "16.2.3",
-    "next-pwa": "^5.6.0",
-    "payload": "3.84.1",
+    "next": "16.4.6",
+    "payload": "3.93.0",
     "react": "19.2.4",
     "react-big-calendar": "^1.19.4",
     "react-dom": "19.2.4",
     "react-hook-form": "^7.56.2",
-    "sharp": "0.34.2",
+    "sharp": "0.35.5",
     "tailwind-merge": "^3.2.0",
     "tailwindcss-animate": "^1.0.7",
-    "workbox-webpack-plugin": "^7.4.1",
+    "web-push": "^4.0.0",
     "zod": "^3.25.57"
   },
   "devDependencies": {
@@ -50,10 +49,11 @@
     "@types/react": "19.2.14",
     "@types/react-big-calendar": "^1.16.3",
     "@types/react-dom": "19.2.3",
+    "@types/web-push": "^3.6.4",
     "@vitejs/plugin-react": "4.5.2",
     "autoprefixer": "^10.4.16",
     "eslint": "^9.16.0",
-    "eslint-config-next": "16.2.3",
+    "eslint-config-next": "16.4.6",
     "jsdom": "28.0.0",
     "postcss": "^8.4.32",
     "prettier": "^3.4.2",
@@ -72,6 +72,9 @@
       "sharp",
       "esbuild",
       "unrs-resolver"
-    ]
+    ],
+    "overrides": {
+      "mongoose": "8.24.9"
+    }
   }
 }

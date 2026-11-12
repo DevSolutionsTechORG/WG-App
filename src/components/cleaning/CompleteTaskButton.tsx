@@ -3,6 +3,7 @@
 import { AlertTriangle, Check, ChevronDown, ChevronUp } from 'lucide-react'
 import { completeTask } from '@/lib/cleaning/actions'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 export interface CleaningTaskOption {
   id: string
@@ -29,6 +30,7 @@ export function CompleteTaskButton({
   options = [],
   onComplete,
 }: CompleteTaskButtonProps) {
+  const router = useRouter()
   const [isPending, setIsPending] = useState(false)
   const [showPicker, setShowPicker] = useState(false)
   const [listOpen, setListOpen] = useState(false)
@@ -40,7 +42,7 @@ export function CompleteTaskButton({
       const result = await completeTask(assignmentId, undefined, selected?.title)
       if (result.success) {
         onComplete?.()
-        window.location.reload()
+        router.refresh()
       } else {
         alert(result.message)
       }

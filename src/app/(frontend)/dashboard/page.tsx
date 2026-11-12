@@ -1,16 +1,17 @@
-'use client'
-
 import { endOfWeek, format, getWeek, startOfWeek } from 'date-fns'
-import { getDashboardData, getDashboardStats } from '@/lib/dashboard/actions'
-import { useEffect, useState } from 'react'
 
 import { EventListOverview } from '@/components/EventListOverview'
 import { FeatureHintCard } from '@/components/dashboard/FeatureHintCard'
 import Link from 'next/link'
+import { LogoutButton } from '@/components/LogoutButton'
+import { PushToggle } from '@/components/PushToggle'
 import type { ShoppingItem } from '@/payload-types'
+import config from '@/payload.config'
 import { de } from 'date-fns/locale'
-import { useAuth } from '@/hooks/useAuth'
-import { useRouter } from 'next/navigation'
+import { getDashboardData } from '@/lib/dashboard/actions'
+import { headers as getHeaders } from 'next/headers.js'
+import { getPayload } from 'payload'
+import { redirect } from 'next/navigation'
 
 // Helper function to get week range
 const getWeekRange = (date: Date) => {
@@ -19,61 +20,18 @@ const getWeekRange = (date: Date) => {
   return `${format(weekStart, 'dd.MM.yyyy', { locale: de })} - ${format(weekEnd, 'dd.MM.yyyy', { locale: de })}`
 }
 
-export default function DashboardPage() {
-  const { isAuthenticated, isLoading } = useAuth()
-  const router = useRouter()
-  const [dashboardData, setDashboardData] = useState<any>(null)
-  const [dashboardStats, setDashboardStats] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
+export default async function DashboardPage() {
+  const headers = await getHeaders()
+  const payload = await getPayload({ config: await config })
+  const { user } = await payload.auth({ headers })
 
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/login')
-      return
-    }
-
-    if (isAuthenticated) {
-      loadDashboardData()
-    }
-  }, [isLoading, isAuthenticated, router])
-
-  const loadDashboardData = async () => {
-    try {
-      const [dataResult, statsResult] = await Promise.all([getDashboardData(), getDashboardStats()])
-
-      setDashboardData(
-        dataResult.success
-          ? dataResult.data
-          : { upcomingEvents: [], openShoppingItems: [], myTasks: [] },
-      )
-      setDashboardStats(
-        statsResult.success
-          ? statsResult.stats
-          : { openShoppingItems: 0, myTasksThisWeek: 0, eventsThisMonth: 0, totalUsers: 0 },
-      )
-    } catch (error) {
-      console.error('Error loading dashboard data:', error)
-    } finally {
-      setLoading(false)
-    }
+  if (!user) {
+    redirect('/login')
   }
 
-  if (isLoading || loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-foreground">Lade Dashboard...</div>
-      </div>
-    )
-  }
+  const { data } = await getDashboardData()
 
-  if (!isAuthenticated) {
-    return null // Will redirect to login
-  }
-
-  const data = dashboardData
-  const stats = dashboardStats
-
-  if (!data || !stats) {
+  if (!data) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <p className="text-muted-foreground">Fehler beim Laden des Dashboards</p>
@@ -100,6 +58,8 @@ export default function DashboardPage() {
               >
                 {data.currentUser.role}
               </span>
+              <PushToggle vapidPublicKey={process.env.VAPID_PUBLIC_KEY} />
+              <LogoutButton />
             </div>
           </div>
         </div>

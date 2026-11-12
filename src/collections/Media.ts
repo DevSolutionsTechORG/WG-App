@@ -4,7 +4,7 @@ import { authenticated } from '@/access/authenticated'
 export const Media: CollectionConfig = {
   slug: 'media',
   access: {
-    read: () => true,
+    read: authenticated,
     create: authenticated,
     update: authenticated,
     delete: authenticated,
@@ -17,6 +17,7 @@ export const Media: CollectionConfig = {
     },
   ],
   upload: {
-    mimeTypes: ['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/svg+xml'],
+    // Kein SVG: wird von der eigenen Origin ausgeliefert und kann Skripte enthalten.
+    mimeTypes: ['image/png', 'image/jpeg', 'image/webp', 'image/gif'],
   },
 }

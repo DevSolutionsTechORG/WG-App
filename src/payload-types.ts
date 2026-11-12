@@ -74,6 +74,7 @@ export interface Config {
     'task-completion-history': TaskCompletionHistory;
     'shopping-items': ShoppingItem;
     events: Event;
+    'push-subscriptions': PushSubscription;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -88,6 +89,7 @@ export interface Config {
     'task-completion-history': TaskCompletionHistorySelect<false> | TaskCompletionHistorySelect<true>;
     'shopping-items': ShoppingItemsSelect<false> | ShoppingItemsSelect<true>;
     events: EventsSelect<false> | EventsSelect<true>;
+    'push-subscriptions': PushSubscriptionsSelect<false> | PushSubscriptionsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -143,6 +145,7 @@ export interface User {
   resetPasswordExpiration?: string | null;
   salt?: string | null;
   hash?: string | null;
+  resetPasswordRequestedAt?: string | null;
   loginAttempts?: number | null;
   lockUntil?: string | null;
   sessions?:
@@ -221,6 +224,7 @@ export interface TaskAssignment {
   status: 'pending' | 'completed' | 'skipped';
   dueDate?: string | null;
   notes?: string | null;
+  reminderSentAt?: string | null;
   title?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -298,6 +302,20 @@ export interface Event {
   location?: string | null;
   eventType?: ('wg-meeting' | 'party' | 'cleaning' | 'waste-collection' | 'other') | null;
   createdBy: string | User;
+  reminderSentAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "push-subscriptions".
+ */
+export interface PushSubscription {
+  id: string;
+  user: string | User;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
   updatedAt: string;
   createdAt: string;
 }
@@ -352,6 +370,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'events';
         value: string | Event;
+      } | null)
+    | ({
+        relationTo: 'push-subscriptions';
+        value: string | PushSubscription;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -410,6 +432,7 @@ export interface UsersSelect<T extends boolean = true> {
   resetPasswordExpiration?: T;
   salt?: T;
   hash?: T;
+  resetPasswordRequestedAt?: T;
   loginAttempts?: T;
   lockUntil?: T;
   sessions?:
@@ -471,6 +494,7 @@ export interface TaskAssignmentsSelect<T extends boolean = true> {
   status?: T;
   dueDate?: T;
   notes?: T;
+  reminderSentAt?: T;
   title?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -524,6 +548,19 @@ export interface EventsSelect<T extends boolean = true> {
   location?: T;
   eventType?: T;
   createdBy?: T;
+  reminderSentAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "push-subscriptions_select".
+ */
+export interface PushSubscriptionsSelect<T extends boolean = true> {
+  user?: T;
+  endpoint?: T;
+  p256dh?: T;
+  auth?: T;
   updatedAt?: T;
   createdAt?: T;
 }

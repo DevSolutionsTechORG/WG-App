@@ -10,7 +10,8 @@ export const TaskAssignments: CollectionConfig = {
   access: {
     read: authenticated,
     create: ({ req: { user } }) => user?.role === 'admin',
-    update: authenticated,
+    // Abhaken läuft über die Server Action completeTask (overrideAccess nach eigener Prüfung).
+    update: ({ req: { user } }) => user?.role === 'admin',
     delete: ({ req: { user } }) => user?.role === 'admin',
   },
   fields: [
@@ -68,6 +69,12 @@ export const TaskAssignments: CollectionConfig = {
       label: 'Notizen',
     },
     {
+      name: 'reminderSentAt',
+      type: 'date',
+      label: 'Push-Erinnerung gesendet',
+      admin: { readOnly: true, position: 'sidebar' },
+    },
+    {
       name: 'title',
       type: 'text',
       label: 'Titel (Auto-Generated)',
@@ -76,15 +83,20 @@ export const TaskAssignments: CollectionConfig = {
       },
       hooks: {
         beforeChange: [
-          async ({ data, req }) => {
-            if (!data?.template || !data?.weekNumber || !data?.year) {
+          async ({ data, originalDoc, req }) => {
+            // Bei Teil-Updates (Abhaken, Erinnerung markieren) enthält `data` nur
+            // die geänderten Felder — den Rest aus dem bestehenden Dokument nehmen.
+            const merged = { ...originalDoc, ...data }
+            if (!merged.template || !merged.weekNumber || !merged.year) {
               return 'Unbekannte Zuweisung'
             }
             const template = await req.payload.findByID({
               collection: 'task-templates',
-              id: data.template,
+              id: typeof merged.template === 'object' ? merged.template.id : merged.template,
+              depth: 0,
+              req,
             })
-            return `${template?.title || 'Unbekannt'} - KW${data.weekNumber}/${data.year}`
+            return `${template?.title || 'Unbekannt'} - KW${merged.weekNumber}/${merged.year}`
           },
         ],
       },

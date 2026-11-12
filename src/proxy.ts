@@ -36,7 +36,7 @@ function isRateLimited(key: string): { limited: boolean; retryAfter: number } {
   return { limited: false, retryAfter: 0 }
 }
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   if (req.method !== 'POST') return NextResponse.next()
 
   const ip = getClientIp(req)

@@ -16,7 +16,7 @@ export interface EnrichedFreeTask {
 
 import config from '@/payload.config'
 import { headers as getHeaders } from 'next/headers.js'
-import { getPayload } from 'payload'
+import { getPayload, type Where } from 'payload'
 import { completeTaskSchema } from '@/lib/schemas'
 import {
   assigneeFor,
@@ -26,6 +26,23 @@ import {
 } from '@/lib/cleaning/generate'
 import { isDueInWeek, isRestricted, toId } from '@/lib/cleaning/rotation'
 import { TWO_WEEKS_MS, withRecency } from '@/lib/cleaning/recency'
+
+/** Offene Aufgaben aus Wochen vor der aktuellen. Nicht exportiert: 'use server'-Datei. */
+function overdueWhere(now = new Date()): Where {
+  const currentWeek = getISOWeek(now)
+  const currentYear = now.getFullYear()
+  return {
+    and: [
+      { status: { equals: 'pending' } },
+      {
+        or: [
+          { year: { less_than: currentYear } },
+          { and: [{ year: { equals: currentYear } }, { weekNumber: { less_than: currentWeek } }] },
+        ],
+      },
+    ],
+  }
+}
 
 /**
  * Get current week's cleaning assignments from TaskAssignments collection
@@ -106,7 +123,7 @@ export async function getRestrictedTaskCards() {
     const { user: currentUser } = await payload.auth({ headers })
     if (!currentUser) return { success: false, cards: [] }
 
-    const { currentWeek, currentYear, users, assignments } = await ensureWeekAssignments(payload)
+    const { users, assignments } = await ensureWeekAssignments(payload)
     const templates = (await payload.find({ collection: 'task-templates', limit: 100 }))
       .docs as TaskTemplate[]
 
@@ -120,23 +137,7 @@ export async function getRestrictedTaskCards() {
 
           const overdueResult = await payload.find({
             collection: 'task-assignments',
-            where: {
-              and: [
-                { template: { equals: template.id } },
-                { status: { equals: 'pending' } },
-                {
-                  or: [
-                    { year: { less_than: currentYear } },
-                    {
-                      and: [
-                        { year: { equals: currentYear } },
-                        { weekNumber: { less_than: currentWeek } },
-                      ],
-                    },
-                  ],
-                },
-              ],
-            },
+            where: { and: [{ template: { equals: template.id } }, overdueWhere()] },
             sort: 'dueDate',
             depth: 1,
             limit: 1,
@@ -189,29 +190,10 @@ export async function getOverdueAssignments() {
       return { success: false, message: 'Not authenticated', overdueAssignments: [] }
     }
 
-    const now = new Date()
-    const currentWeek = getISOWeek(now)
-    const currentYear = now.getFullYear()
-
     // Find all pending assignments from previous weeks
     const overdueResult = await payload.find({
       collection: 'task-assignments',
-      where: {
-        and: [
-          { status: { equals: 'pending' } },
-          {
-            or: [
-              { year: { less_than: currentYear } },
-              {
-                and: [
-                  { year: { equals: currentYear } },
-                  { weekNumber: { less_than: currentWeek } },
-                ],
-              },
-            ],
-          },
-        ],
-      },
+      where: overdueWhere(),
       depth: 2,
       limit: 100,
       sort: '-weekNumber', // Most recent overdue first
@@ -484,6 +466,38 @@ export async function getCompletedFreeTaskHistory(): Promise<{
   } catch (error) {
     console.error('Get completed free task history error:', error)
     return { success: false, message: 'Failed to load history', history: [] }
+  }
+}
+
+/**
+ * Löscht alle überfälligen (offenen, aus Vorwochen stammenden) Aufgaben — nur Admin.
+ * Die aktuelle Woche bleibt unangetastet. Die Rotation ist formelbasiert,
+ * Löschen verschiebt also keine künftige Zuteilung.
+ */
+export async function deleteOverdueAssignments() {
+  try {
+    const headers = await getHeaders()
+    const payload = await getPayload({ config: await config })
+
+    const { user: currentUser } = await payload.auth({ headers })
+    if (!currentUser || currentUser.role !== 'admin') {
+      return { success: false, message: 'Admin access required' }
+    }
+
+    const result = await payload.delete({
+      collection: 'task-assignments',
+      where: overdueWhere(),
+      overrideAccess: true,
+    })
+
+    return {
+      success: true,
+      deleted: result.docs.length,
+      message: `${result.docs.length} überfällige Aufgaben gelöscht`,
+    }
+  } catch (error) {
+    console.error('Delete overdue assignments error:', error)
+    return { success: false, message: 'Fehler beim Löschen' }
   }
 }
 

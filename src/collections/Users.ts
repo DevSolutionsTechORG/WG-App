@@ -27,7 +27,8 @@ export const Users: CollectionConfig = {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'Strict',
     },
-    tokenExpiration: 900,
+    // 30 Tage, gleitend: AppLifecycle ruft beim Öffnen/Zurückkehren refresh-token auf.
+    tokenExpiration: 60 * 60 * 24 * 30,
     maxLoginAttempts: 5,
     lockTime: 10 * 60 * 1000,
     forgotPassword: {

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Check } from 'lucide-react'
 
 import { completeShoppingItem } from '@/lib/shopping/actions'
@@ -10,6 +11,7 @@ interface CompleteItemButtonProps {
 }
 
 export function CompleteItemButton({ itemId }: CompleteItemButtonProps) {
+  const router = useRouter()
   const [isPending, setIsPending] = useState(false)
 
   const handleComplete = async () => {
@@ -17,7 +19,7 @@ export function CompleteItemButton({ itemId }: CompleteItemButtonProps) {
     try {
       const result = await completeShoppingItem(itemId)
       if (result.success) {
-        window.location.reload()
+        router.refresh()
       } else {
         alert(result.message)
       }

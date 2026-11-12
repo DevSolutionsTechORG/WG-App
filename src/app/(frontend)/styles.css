@@ -66,6 +66,9 @@
 
 html {
   -webkit-font-smoothing: antialiased;
+  /* App-Gefühl: kein grauer Tap-Blitz, kein Doppeltipp-Zoom */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 html,

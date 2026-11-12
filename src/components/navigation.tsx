@@ -13,9 +13,10 @@ const navItems = [
 
 export function Navigation() {
   const pathname = usePathname()
+  if (pathname === '/login') return null
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t md:static md:border-b md:border-t-0">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-card border-t pb-[env(safe-area-inset-bottom)] select-none md:static md:border-b md:border-t-0 md:pb-0">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex justify-around md:justify-start md:gap-8 h-16 md:h-14 items-center">
           {navItems.map((item) => {

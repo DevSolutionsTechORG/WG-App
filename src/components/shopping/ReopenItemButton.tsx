@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Undo2 } from 'lucide-react'
 
 import { reopenShoppingItem } from '@/lib/shopping/actions'
@@ -10,6 +11,7 @@ interface ReopenItemButtonProps {
 }
 
 export function ReopenItemButton({ itemId }: ReopenItemButtonProps) {
+  const router = useRouter()
   const [isPending, setIsPending] = useState(false)
 
   const handleReopen = async () => {
@@ -17,7 +19,7 @@ export function ReopenItemButton({ itemId }: ReopenItemButtonProps) {
     try {
       const result = await reopenShoppingItem(itemId)
       if (result.success) {
-        window.location.reload()
+        router.refresh()
       } else {
         alert(result.message)
       }

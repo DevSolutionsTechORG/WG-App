@@ -6,6 +6,7 @@ import { format, isSameMonth } from 'date-fns'
 import { useCallback, useState } from 'react'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { de } from 'date-fns/locale/de'
 
 type EventType = 'wg-meeting' | 'party' | 'cleaning' | 'waste-collection' | 'other'
@@ -55,6 +56,8 @@ interface EventListOverviewProps {
   filterByMonth?: boolean
   currentUserId?: string
   isAdmin?: boolean
+  /** Nach Speichern/Löschen. Default: Server-Daten neu laden. */
+  onChanged?: () => void
 }
 
 interface FormData {
@@ -91,7 +94,10 @@ export function EventListOverview({
   filterByMonth = true,
   currentUserId,
   isAdmin = false,
+  onChanged,
 }: EventListOverviewProps) {
+  const router = useRouter()
+  const changed = onChanged ?? (() => router.refresh())
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
   const [formData, setFormData] = useState<FormData>(() => {
@@ -131,44 +137,39 @@ export function EventListOverview({
         setIsModalOpen(true)
       } else {
         // Navigate to calendar when clicking on event
-        window.location.href = '/calendar'
+        router.push('/calendar')
       }
     },
-    [onEventClick, enableModal],
+    [onEventClick, enableModal, router],
   )
 
   const handleSave = useCallback(async () => {
     if (!formData.title.trim()) return
 
     try {
-      if (selectedEvent) {
-        await updateEvent(selectedEvent.id, {
-          title: formData.title,
-          startDate: formData.startDate,
-          endDate: formData.endDate,
-          allDay: true, // Always true since we only use dates
-          description: formData.description,
-          location: formData.location,
-          eventType: formData.eventType,
-        })
-      } else {
-        await createEvent({
-          title: formData.title,
-          startDate: formData.startDate,
-          endDate: formData.endDate,
-          allDay: true, // Always true since we only use dates
-          description: formData.description,
-          location: formData.location,
-          eventType: formData.eventType,
-        })
+      // Das Schema verlangt ISO-Datetime, das Formular liefert yyyy-MM-dd.
+      const data = {
+        title: formData.title,
+        startDate: new Date(formData.startDate).toISOString(),
+        endDate: new Date(formData.endDate || formData.startDate).toISOString(),
+        allDay: true, // Always true since we only use dates
+        description: formData.description || undefined,
+        location: formData.location || undefined,
+        eventType: formData.eventType,
+      }
+      const result = selectedEvent
+        ? await updateEvent(selectedEvent.id, data)
+        : await createEvent(data)
+      if (!result.success) {
+        alert(result.message)
+        return
       }
       closeModal()
-      // Reload events by triggering parent refresh
-      window.location.reload()
+      changed()
     } catch (error) {
       console.error('Error saving event:', error)
     }
-  }, [formData, selectedEvent])
+  }, [formData, selectedEvent, changed, closeModal])
 
   const handleDelete = useCallback(async () => {
     if (!selectedEvent) return
@@ -176,12 +177,11 @@ export function EventListOverview({
     try {
       await deleteEvent(selectedEvent.id)
       closeModal()
-      // Reload events by triggering parent refresh
-      window.location.reload()
+      changed()
     } catch (error) {
       console.error('Error deleting event:', error)
     }
-  }, [selectedEvent])
+  }, [selectedEvent, changed, closeModal])
 
   return (
     <div>

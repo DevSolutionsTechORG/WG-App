@@ -10,6 +10,7 @@ import { isRestricted } from '@/lib/cleaning/rotation'
 
 import { CompleteTaskButton } from '@/components/cleaning/CompleteTaskButton'
 import { CompletedFreeTasksSection } from '@/components/cleaning/CompletedFreeTasksSection'
+import { DeleteOverdueButton } from '@/components/cleaning/DeleteOverdueButton'
 import config from '@/payload.config'
 import { headers as getHeaders } from 'next/headers.js'
 import { getPayload } from 'payload'
@@ -52,6 +53,12 @@ export default async function CleaningPage() {
             KW {currentWeek} / {currentYear}
           </div>
         </div>
+
+        {user.role === 'admin' && allOverdue.length > 0 && (
+          <div className="flex justify-end mb-4">
+            <DeleteOverdueButton count={allOverdue.length} />
+          </div>
+        )}
 
         {/* Permanente Karten (z.B. Badezimmer): blau = du bist dran, rot = überfällig */}
         {cards.length > 0 && (

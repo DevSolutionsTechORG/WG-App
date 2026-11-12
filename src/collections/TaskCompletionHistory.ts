@@ -9,7 +9,8 @@ export const TaskCompletionHistory: CollectionConfig = {
   },
   access: {
     read: authenticated,
-    create: authenticated,
+    // Einträge entstehen nur über completeTask (overrideAccess), nie direkt per REST.
+    create: ({ req: { user } }) => user?.role === 'admin',
     update: ({ req: { user } }) => user?.role === 'admin',
     delete: ({ req: { user } }) => user?.role === 'admin',
   },

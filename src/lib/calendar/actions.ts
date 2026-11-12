@@ -5,13 +5,25 @@ import type { Event, User } from '@/payload-types'
 import config from '@/payload.config'
 import { headers as getHeaders } from 'next/headers.js'
 import { getPayload } from 'payload'
-import { createEventSchema, idSchema, updateEventSchema } from '@/lib/schemas'
+import {
+  createEventSchema,
+  eventRangeSchema,
+  idSchema,
+  MAX_ICS_IMPORT,
+  updateEventSchema,
+} from '@/lib/schemas'
 import type { ParsedIcsEvent } from '@/lib/calendar/ics-parser'
 
 /**
  * Get events for a date range
  */
-export async function getEvents(startDate?: string, endDate?: string) {
+export async function getEvents(startInput?: unknown, endInput?: unknown) {
+  const range = eventRangeSchema.safeParse({ startDate: startInput, endDate: endInput })
+  if (!range.success) {
+    return { success: false, message: 'Ungültige Eingabe', events: [] }
+  }
+  const { startDate, endDate } = range.data
+
   try {
     const headers = await getHeaders()
     const payloadConfig = await config
@@ -170,6 +182,14 @@ export async function importIcsEvents(
 ): Promise<{ success: boolean; imported: number; errors: number; message: string }> {
   if (!Array.isArray(events) || events.length === 0) {
     return { success: false, imported: 0, errors: 0, message: 'Keine Events übergeben' }
+  }
+  if (events.length > MAX_ICS_IMPORT) {
+    return {
+      success: false,
+      imported: 0,
+      errors: 0,
+      message: `Zu viele Termine (max. ${MAX_ICS_IMPORT} pro Import)`,
+    }
   }
 
   try {

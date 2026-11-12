@@ -114,9 +114,9 @@ export const ShoppingItems: CollectionConfig = {
   hooks: {
     beforeChange: [
       async ({ data, req, operation }) => {
-        if (operation === 'create' && !data.requestedBy) {
-          // Auto-set current user as requester
-          data.requestedBy = req.user?.id
+        // Nicht-Admins können per REST keinen fremden Wünscher setzen.
+        if (operation === 'create' && req.user && (req.user.role !== 'admin' || !data.requestedBy)) {
+          data.requestedBy = req.user.id
         }
         return data
       },
